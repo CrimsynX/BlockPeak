@@ -46,6 +46,7 @@ namespace BlockPeak.UI
                 if (McAssets.Status == McAssets.State.Failed) lines.Add("<color=#FFB000>Minecraft textures not found:</color> " + McAssets.StatusText);
                 else if (McAssets.Status == McAssets.State.Extracting) lines.Add(McAssets.StatusText);
                 if (Balance.UsingHostCopy) lines.Add("Using the host's BlockPeak settings.");
+                if (Cfg.TestMode.Value) lines.Add($"<color=#FFD700>TEST MODE</color> on: press {Cfg.TestMenuKey.Value} for the item / mob menu.");
             }
             if (airport || Time.unscaledTime < welcomeUntil)
             {

@@ -32,6 +32,8 @@ namespace BlockPeak.Core
         public static ConfigEntry<string> PreferMinecraftVersion;
         public static ConfigEntry<float> McSoundVolume;
         public static ConfigEntry<string> ItemShaderOverride;
+        public static ConfigEntry<bool> TestMode;
+        public static ConfigEntry<KeyCode> TestMenuKey;
 
         public static void Bind(ConfigFile c)
         {
@@ -61,6 +63,8 @@ namespace BlockPeak.Core
             PreferMinecraftVersion = c.Bind("Minecraft", "PreferVersion", "26.3", "Which installed Minecraft version to take textures and sounds from. Falls back to the newest one found.");
             McSoundVolume = c.Bind("Audio", "MinecraftSoundVolume", 0.8f, new ConfigDescription("Volume of Minecraft sounds.", new AcceptableValueRange<float>(0f, 1f)));
 
+            TestMode = c.Bind("Testing", "TestMode", false, "Creative-style test menu: press TestMenuKey to get any Minecraft item, spawn mobs and make it night. Works in the Airport and on the mountain. In multiplayer the HOST must have it on too.");
+            TestMenuKey = c.Bind("Testing", "TestMenuKey", KeyCode.F6, "Opens and closes the test menu (when TestMode is on).");
             ItemShaderOverride = c.Bind("Debug", "ItemShaderOverride", "", "Advanced: name of a shader to draw Minecraft items with if they look wrong (e.g. 'Universal Render Pipeline/Lit'). Empty = copy PEAK's item material.");
         }
 

@@ -36,6 +36,7 @@ namespace BlockPeak.Core
                 McMobs.RegisterNet();
                 Projectiles.RegisterNet();
                 LocalEffects.RegisterNet();
+                TestMenu.RegisterNet();
             });
         }
 
@@ -61,11 +62,18 @@ namespace BlockPeak.Core
             Health.Guard("projectiles", Projectiles.Tick);
             Health.Guard("fx", Fx.Tick);
             Health.Guard("banner", Banner.Tick);
+            Health.Guard("test-menu", TestMenu.Tick);
+        }
+
+        private void LateUpdate()
+        {
+            Health.Guard("test-menu", TestMenu.LateTick);
         }
 
         private void OnGUI()
         {
             Health.Guard("banner-draw", Banner.Draw);
+            Health.Guard("test-menu-draw", TestMenu.Draw);
         }
 
         private void CheckScene()

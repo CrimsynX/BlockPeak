@@ -62,6 +62,17 @@ To update: download the new version and press **Install / Update** again (your s
 
 Dropping and throwing items uses PEAK's normal keys.
 
+## Test mode (try everything without a run)
+
+In the setup press **Test mode ON**, start PEAK and press **F6** (in the Airport or on the mountain). A menu opens:
+
+- click any Minecraft item to get a full stack (it drops in front of you if your hotbar is full),
+- spawn any mob about 6 m in front of you,
+- "Mobs act like it's night", remove all mobs, remove all blocks.
+
+Blocks, TNT, torches and ladders can be placed right in the Airport. In multiplayer the **host** needs test mode on.
+Press **Test mode OFF** before normal play. (Same switch: `TestMode` under `[Testing]` in the .cfg.)
+
 ## Items
 
 | Item | Found | Stack | What it does |

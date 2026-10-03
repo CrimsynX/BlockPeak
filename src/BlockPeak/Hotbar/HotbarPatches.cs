@@ -191,6 +191,7 @@ namespace BlockPeak.Hotbar
         private static bool Prefix(CharacterItems __instance)
         {
             if (Cfg.ExtraSlotCount <= 0) return true;
+            if (UI.TestMenu.Open) return false;
             try { Switch(__instance); }
             catch (Exception e) { Health.Report("hotbar-switch", e); return true; }
             return false;

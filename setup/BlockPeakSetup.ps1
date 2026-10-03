@@ -14,7 +14,7 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('gui', 'install', 'uninstall', 'uninstall-all', 'assets', 'status', 'play', 'vanilla', 'modded')]
+    [ValidateSet('gui', 'install', 'uninstall', 'uninstall-all', 'assets', 'status', 'play', 'vanilla', 'modded', 'testmode-on', 'testmode-off')]
     [string]$Action = 'gui',
     [string]$GamePath = '',
     [string]$MinecraftPath = '',
@@ -453,6 +453,27 @@ function Set-Modded([bool]$on) {
     }
 }
 
+function Set-TestMode([bool]$on) {
+    $game = Find-Peak
+    if (-not $game) { throw 'PEAK was not found.' }
+    $dir = Join-Path $game 'BepInEx/config'
+    if (-not (Test-Path $dir)) { throw 'Run Install first.' }
+    $cfg = Join-Path $dir 'com.blockpeak.mod.cfg'
+    $value = 'false'
+    if ($on) { $value = 'true' }
+    $text = ''
+    if (Test-Path $cfg) { $text = [IO.File]::ReadAllText($cfg) }
+    if ($text -match '(?m)^TestMode\s*=') {
+        $text = [regex]::Replace($text, '(?m)^TestMode\s*=\s*\w+', "TestMode = $value")
+    }
+    else {
+        $text = $text.TrimEnd() + "`r`n`r`n[Testing]`r`n`r`nTestMode = $value`r`n"
+    }
+    [IO.File]::WriteAllText($cfg, $text)
+    if ($on) { Write-Log 'Test mode ON. In PEAK press F6 (Airport or mountain) for the item / mob menu. The host needs it on too.' 'ok' }
+    else { Write-Log 'Test mode OFF.' 'ok' }
+}
+
 function Start-Peak {
     Write-Log 'Starting PEAK through Steam...'
     Start-Process "steam://rungameid/$($script:PeakAppId)"
@@ -467,7 +488,7 @@ function Show-Gui {
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'BlockPeak Setup ' + (Get-PluginVersion)
-    $form.Size = New-Object System.Drawing.Size(720, 600)
+    $form.Size = New-Object System.Drawing.Size(720, 640)
     $form.StartPosition = 'CenterScreen'
     $form.BackColor = [System.Drawing.Color]::FromArgb(32, 34, 37)
     $form.ForeColor = [System.Drawing.Color]::White
@@ -494,7 +515,7 @@ function Show-Gui {
     $log.BackColor = [System.Drawing.Color]::FromArgb(20, 21, 23)
     $log.ForeColor = [System.Drawing.Color]::Gainsboro
     $log.Font = New-Object System.Drawing.Font('Consolas', 9)
-    $log.Location = New-Object System.Drawing.Point(16, 300)
+    $log.Location = New-Object System.Drawing.Point(16, 340)
     $log.Size = New-Object System.Drawing.Size(670, 240)
     $form.Controls.Add($log)
     $script:LogBox = $log
@@ -519,7 +540,9 @@ function Show-Gui {
             if ($dlg.ShowDialog() -eq 'OK') { $script:GamePath = $dlg.SelectedPath; Set-Variable -Name GamePath -Value $dlg.SelectedPath -Scope Script; Write-Log "Using $($dlg.SelectedPath)" }
         }, 0, 2, $false),
         @('Open settings folder', { $g = Find-Peak; $d = Join-Path $g 'BepInEx/config'; if (Test-Path $d) { Start-Process explorer.exe $d } else { throw 'Run Install first.' } }, 1, 2, $false),
-        @('Open game log', { $g = Find-Peak; $f = Join-Path $g 'BepInEx/LogOutput.log'; if (Test-Path $f) { Start-Process notepad.exe $f } else { throw 'No log yet - start PEAK once.' } }, 2, 2, $false)
+        @('Open game log', { $g = Find-Peak; $f = Join-Path $g 'BepInEx/LogOutput.log'; if (Test-Path $f) { Start-Process notepad.exe $f } else { throw 'No log yet - start PEAK once.' } }, 2, 2, $false),
+        @('Test mode ON (F6 menu)', { Set-TestMode $true }, 0, 3, $false),
+        @('Test mode OFF', { Set-TestMode $false }, 1, 3, $false)
     )
     foreach ($b in $buttons) {
         $btn = New-Object System.Windows.Forms.Button
@@ -528,12 +551,15 @@ function Show-Gui {
         $btn.Location = New-Object System.Drawing.Point((16 + $b[2] * 228), (168 + $b[3] * 42))
         $btn.FlatStyle = 'Flat'
         if ($b[4]) { $btn.BackColor = [System.Drawing.Color]::FromArgb(60, 120, 40) } else { $btn.BackColor = [System.Drawing.Color]::FromArgb(55, 58, 64) }
-        $action = $b[1]
+        # The action rides along in Tag; the handler runs inside Show-Gui's scope (no GetNewClosure: that would
+        # hide the script's functions from the handler).
+        $btn.Tag = $b[1]
         $btn.Add_Click({
+            param($sender, $eventArgs)
             $form.UseWaitCursor = $true
-            try { & $action } catch { Write-Log ('Problem: ' + $_.Exception.Message) 'error'; [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, 'BlockPeak Setup') | Out-Null }
+            try { & $sender.Tag } catch { Write-Log ('Problem: ' + $_.Exception.Message) 'error'; [void][System.Windows.Forms.MessageBox]::Show($_.Exception.Message, 'BlockPeak Setup') }
             finally { $form.UseWaitCursor = $false; & $refresh }
-        }.GetNewClosure())
+        })
         $form.Controls.Add($btn)
     }
     $form.Add_Shown({ & $refresh; Write-Log 'Ready. Press "Install / Update" to set everything up.' })
@@ -556,6 +582,8 @@ try {
         'play' { Start-Peak }
         'vanilla' { Set-Modded $false }
         'modded' { Set-Modded $true }
+        'testmode-on' { Set-TestMode $true }
+        'testmode-off' { Set-TestMode $false }
     }
 }
 catch {

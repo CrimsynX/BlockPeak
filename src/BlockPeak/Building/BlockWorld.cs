@@ -414,6 +414,13 @@ namespace BlockPeak.Building
             return false;
         }
 
+        /// <summary>Host (test mode): remove every placed block.</summary>
+        public static void HostClearAll()
+        {
+            if (!IsAuthority) return;
+            foreach (var r in byId.Values.ToList()) Channel.All(Op.BlockBroken, true, r.Id, false);
+        }
+
         public static void RequestBreak(int id) => Channel.Host(Op.BlockBreakReq, id);
         public static void RequestIgnite(int id) => Channel.Host(Op.TntIgniteReq, id);
     }

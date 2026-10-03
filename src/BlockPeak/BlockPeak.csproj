@@ -18,7 +18,7 @@
     <NoWarn>$(NoWarn);CS0436;CS1701;CS1702;CS0649;CS0169;CS0414</NoWarn>
     <!-- where build.ps1 put the references -->
     <LibDir Condition="'$(LibDir)' == ''">$(MSBuildThisFileDirectory)..\..\lib\</LibDir>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Test mode: F6 menu to get any Minecraft item, spawn mobs, force night, clear mobs/blocks. Setup buttons to switch it on/off.
+
 ## 0.1.0 (first build)
 
 - 9-slot Minecraft hotbar (3–9 configurable) with Minecraft's own HUD sprites and font; backpack in the off-hand slot.

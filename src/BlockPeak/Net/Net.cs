@@ -34,6 +34,9 @@ namespace BlockPeak.Net
         Splash = 25,
         ItemCountSet = 26,
         Hello = 30,
+        TestGive = 31,
+        TestMob = 32,
+        TestClear = 33,
     }
 
     /// <summary>

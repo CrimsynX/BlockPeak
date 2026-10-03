@@ -52,6 +52,32 @@ namespace BlockPeak.Mobs
         private static bool wasNight;
 
         private static JToken M => Balance.Section("mobs");
+
+        /// <summary>Test mode: mobs behave as if it were night (the sky does not change).</summary>
+        public static bool ForceNight;
+
+        public static IEnumerable<string> AllTypes => TypeIndex;
+
+        /// <summary>Host (test mode): put a mob about 6 m in front of a scout.</summary>
+        public static void HostSpawnNear(Character c, string type)
+        {
+            if (!IsHost || c == null || Array.IndexOf(TypeIndex, type) < 0) return;
+            Vector3 f = Flat(c.data.lookDirection).normalized;
+            Vector3 probe = c.Center + f * 6f;
+            Vector3 pos = probe;
+            if (Physics.Raycast(probe + Vector3.up * 10f, Vector3.down, out var hit, 40f, Game.TerrainMask, QueryTriggerInteraction.Ignore)) pos = hit.point;
+            int id = nextId++;
+            float yaw = Quaternion.LookRotation(Flat(c.Center - pos)).eulerAngles.y;
+            Create(id, type, pos, yaw);
+            Channel.Others(Op.MobSpawn, true, id, type, pos, yaw);
+        }
+
+        /// <summary>Host (test mode): remove every mob.</summary>
+        public static void HostClearAll()
+        {
+            if (!IsHost) return;
+            foreach (var m in mobs.Values.ToList()) if (!m.Dying) Despawn(m, 0);
+        }
         public static int Count => mobs.Count;
 
         public static void RegisterNet()
@@ -84,7 +110,8 @@ namespace BlockPeak.Mobs
 
         public static void Tick()
         {
-            if (!Game.InRun) { if (mobs.Count > 0) Clear(); return; }
+            bool testArea = Cfg.TestMode.Value && Game.InAirport && PhotonNetwork.InRoom;
+            if (!Game.InRun && !testArea) { if (mobs.Count > 0) Clear(); return; }
             float dt = Time.deltaTime;
             if (IsHost) TickHost(dt);
             else
@@ -106,7 +133,7 @@ namespace BlockPeak.Mobs
 
         private static void TickHost(float dt)
         {
-            bool night = Game.IsNight;
+            bool night = Game.IsNight || ForceNight;
             if (night != wasNight) { wasNight = night; if (!night) Dawn(); }
 
             if (Balance.B(M, "enabled", true) && night && Time.time >= nextSpawn)
