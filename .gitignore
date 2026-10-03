@@ -1,0 +1,14 @@
+# game / BepInEx references copied by tools/build.ps1 (never commit these)
+lib/
+# build output
+**/bin/
+**/obj/
+*.user
+.vs/
+.vscode/
+# scratch and logs
+.work/
+setup/setup-log.txt
+BlockPeak-*.zip
+# never commit Minecraft files
+mc-assets/

@@ -1,0 +1,143 @@
+# BlockPeak: files copied from YOUR Minecraft install (never shipped with the mod).
+# "tex <path>"  = assets/minecraft/textures/<path> inside the Minecraft client jar
+# "snd <path>"  = minecraft/sounds/<path> from the launcher's asset index (a path ending in / takes the whole folder)
+# Lines starting with # are comments. Both the setup program and the mod read this file.
+format 1
+
+# --- HUD ---
+tex gui/sprites/hud/hotbar.png
+tex gui/sprites/hud/hotbar_selection.png
+tex gui/sprites/hud/hotbar_offhand_left.png
+tex gui/sprites/hud/hotbar_offhand_right.png
+tex font/ascii.png
+tex misc/enchanted_glint_item.png
+tex particle/flame.png
+tex particle/generic_0.png
+tex particle/big_smoke_0.png
+
+# --- items ---
+tex item/ender_pearl.png
+tex item/elytra.png
+tex item/goat_horn.png
+tex item/totem_of_undying.png
+tex item/golden_apple.png
+tex item/cookie.png
+tex item/cooked_beef.png
+tex item/oak_boat.png
+tex item/water_bucket.png
+tex item/bucket.png
+tex item/wind_charge.png
+tex item/stone_sword.png
+tex item/rotten_flesh.png
+
+# --- blocks ---
+tex block/torch.png
+tex block/redstone_torch.png
+tex block/ladder.png
+tex block/tnt_side.png
+tex block/tnt_top.png
+tex block/tnt_bottom.png
+tex block/sand.png
+tex block/oak_planks.png
+tex block/moss_block.png
+tex block/packed_ice.png
+tex block/terracotta.png
+tex block/basalt_side.png
+tex block/basalt_top.png
+tex block/deepslate.png
+tex block/stone_bricks.png
+
+# --- mobs and entities ---
+tex entity/zombie/zombie.png
+tex entity/zombie/husk.png
+tex entity/zombie/drowned.png
+tex entity/zombie/drowned_outer_layer.png
+tex entity/skeleton/skeleton.png
+tex entity/skeleton/stray.png
+tex entity/skeleton/stray_overlay.png
+tex entity/skeleton/bogged.png
+tex entity/skeleton/bogged_overlay.png
+tex entity/spider/spider.png
+tex entity/spider/spider_eyes.png
+tex entity/creeper/creeper.png
+tex entity/slime/slime.png
+tex entity/slime/magmacube.png
+tex entity/chest/normal.png
+tex entity/boat/oak.png
+
+# --- sounds ---
+snd random/pop.ogg
+snd random/eat1.ogg
+snd random/eat2.ogg
+snd random/eat3.ogg
+snd random/burp.ogg
+snd random/explode1.ogg
+snd random/explode2.ogg
+snd random/explode3.ogg
+snd random/explode4.ogg
+snd random/fuse.ogg
+snd random/chestopen.ogg
+snd random/chestclosed.ogg
+snd random/bow.ogg
+snd random/bowhit1.ogg
+snd random/bowhit2.ogg
+snd random/break.ogg
+snd random/click.ogg
+snd random/fizz.ogg
+snd random/levelup.ogg
+snd fire/ignite.ogg
+snd mob/endermen/portal.ogg
+snd mob/endermen/portal2.ogg
+snd item/totem/
+snd item/goat_horn/
+snd item/elytra/
+snd item/bucket/empty1.ogg
+snd item/bucket/empty2.ogg
+snd item/bucket/empty3.ogg
+snd item/bucket/fill1.ogg
+snd item/bucket/fill2.ogg
+snd item/bucket/fill3.ogg
+snd entity/wind_charge/
+snd entity/boat/
+snd entity/player/attack/
+snd damage/hit1.ogg
+snd damage/hit2.ogg
+snd damage/hit3.ogg
+snd dig/stone1.ogg
+snd dig/stone2.ogg
+snd dig/stone3.ogg
+snd dig/stone4.ogg
+snd dig/wood1.ogg
+snd dig/wood2.ogg
+snd dig/wood3.ogg
+snd dig/wood4.ogg
+snd dig/sand1.ogg
+snd dig/sand2.ogg
+snd dig/sand3.ogg
+snd dig/sand4.ogg
+snd dig/grass1.ogg
+snd dig/grass2.ogg
+snd dig/grass3.ogg
+snd dig/grass4.ogg
+snd dig/snow1.ogg
+snd dig/snow2.ogg
+snd dig/snow3.ogg
+snd dig/snow4.ogg
+snd step/ladder1.ogg
+snd step/ladder2.ogg
+snd step/ladder3.ogg
+snd mob/zombie/say1.ogg
+snd mob/zombie/say2.ogg
+snd mob/zombie/say3.ogg
+snd mob/zombie/hurt1.ogg
+snd mob/zombie/hurt2.ogg
+snd mob/zombie/death.ogg
+snd mob/husk/
+snd mob/drowned/
+snd mob/skeleton/
+snd mob/stray/
+snd mob/bogged/
+snd mob/spider/
+snd mob/creeper/
+snd mob/slime/
+snd mob/magmacube/

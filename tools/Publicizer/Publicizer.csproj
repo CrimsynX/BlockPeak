@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Makes a copy of a game DLL with everything public, so the mod can compile against PEAK's internals.
+       Uses the Mono.Cecil that ships with BepInEx (pass -p:CecilPath=...\BepInEx\core\Mono.Cecil.dll). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Mono.Cecil">
+      <HintPath>$(CecilPath)</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

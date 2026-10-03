@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    BlockPeak plugin. Builds against the PEAK game files on YOUR machine.
+    tools/build.ps1 fills lib/ (copies + publicizes the game DLLs) and then runs this build.
+    Nothing from PEAK, BepInEx or Minecraft is committed to the repo.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>BlockPeak</AssemblyName>
+    <RootNamespace>BlockPeak</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <DebugType>embedded</DebugType>
+    <Deterministic>true</Deterministic>
+    <NoWarn>$(NoWarn);CS0436;CS1701;CS1702;CS0649;CS0169;CS0414</NoWarn>
+    <!-- where build.ps1 put the references -->
+    <LibDir Condition="'$(LibDir)' == ''">$(MSBuildThisFileDirectory)..\..\lib\</LibDir>
+    <Version>0.1.0</Version>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Every DLL from PEAK_Data/Managed (copied by tools/build.ps1), except the ones we use publicized copies of -->
+    <Reference Include="$(LibDir)game\*.dll" Exclude="$(LibDir)game\Assembly-CSharp.dll;$(LibDir)game\Zorro.Core.Runtime.dll;$(LibDir)game\Zorro.PhotonUtility.dll;$(LibDir)game\Zorro.Settings.Runtime.dll;$(LibDir)game\PhotonUnityNetworking.dll" Private="false" />
+    <!-- game code, publicized so we can reach internal members -->
+    <Reference Include="$(LibDir)publicized\*.dll" Private="false" />
+    <!-- BepInEx -->
+    <Reference Include="$(LibDir)bepinex\BepInEx.dll" Private="false" />
+    <Reference Include="$(LibDir)bepinex\0Harmony.dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\config\balance.json" LogicalName="BlockPeak.balance.json" />
+    <EmbeddedResource Include="..\..\config\minecraft-assets.txt" LogicalName="BlockPeak.minecraft-assets.txt" />
+  </ItemGroup>
+</Project>

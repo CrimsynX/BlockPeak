@@ -1,0 +1,419 @@
+{
+  "_readme": "BlockPeak balance file. Edit numbers, save, restart PEAK. In multiplayer the HOST's file is used for everyone. Status amounts use PEAK units: 1.0 = the whole stamina bar, 0.025 = one tick. Weight units: 1 = one PEAK weight tick (2.5 on the bar).",
+  "version": 1,
+  "loot": {
+    "minecraftShare": 0.15,
+    "ancientShare": 0.2,
+    "chestChance": 0.1,
+    "chestItemsMin": 1,
+    "chestItemsMax": 3,
+    "perRunCaps": {
+      "elytra": 1,
+      "enchanted_golden_apple": 1,
+      "totem_of_undying": 2,
+      "ender_pearl": 4
+    },
+    "blockForPool": {
+      "LuggageBeach": "sand",
+      "LuggageJungle": "oak_planks",
+      "LuggageRoots": "moss_block",
+      "LuggageTundra": "packed_ice",
+      "LuggageMesa": "terracotta",
+      "LuggageCaldera": "basalt",
+      "LuggageGloom": "deepslate",
+      "LuggageCitadel": "stone_bricks",
+      "LuggageClimber": "oak_planks"
+    },
+    "biomePools": [
+      "LuggageBeach",
+      "LuggageJungle",
+      "LuggageRoots",
+      "LuggageTundra",
+      "LuggageMesa",
+      "LuggageCaldera",
+      "LuggageGloom",
+      "LuggageCitadel",
+      "LuggageClimber"
+    ],
+    "rarePoolsOnly": [
+      "LuggageAncient"
+    ],
+    "weights": {
+      "blocks": 20,
+      "cookie": 10,
+      "torch": 9,
+      "ladder": 8,
+      "steak": 8,
+      "redstone_torch": 6,
+      "tnt": 6,
+      "goat_horn": 5,
+      "golden_apple": 5,
+      "stone_sword": 5,
+      "wind_charge": 4,
+      "water_bucket": 4,
+      "boat": 3,
+      "ender_pearl": 3,
+      "totem_of_undying": 1.5,
+      "elytra": 1.5,
+      "enchanted_golden_apple": 1
+    },
+    "multipliers": {
+      "LuggageTundra": {
+        "torch": 2,
+        "boat": 2
+      },
+      "LuggageMesa": {
+        "tnt": 2,
+        "water_bucket": 2
+      },
+      "LuggageBeach": {
+        "boat": 2
+      },
+      "LuggageRoots": {
+        "boat": 2
+      },
+      "LuggageCaldera": {
+        "water_bucket": 0
+      }
+    },
+    "rareItems": [
+      "ender_pearl",
+      "totem_of_undying",
+      "elytra",
+      "enchanted_golden_apple"
+    ]
+  },
+  "items": {
+    "blocks": {
+      "find": [
+        4,
+        12
+      ],
+      "stack": 24,
+      "weightPer": 3
+    },
+    "ladder": {
+      "find": [
+        3,
+        8
+      ],
+      "stack": 16,
+      "weightPer": 3
+    },
+    "torch": {
+      "find": [
+        2,
+        6
+      ],
+      "stack": 16,
+      "weightPer": 4
+    },
+    "redstone_torch": {
+      "find": [
+        2,
+        4
+      ],
+      "stack": 16,
+      "weightPer": 4
+    },
+    "tnt": {
+      "find": [
+        1,
+        3
+      ],
+      "stack": 4,
+      "weightPer": 1,
+      "weightEach": 2,
+      "fuseSeconds": 4.0,
+      "radius": 3.0,
+      "injury": 0.4
+    },
+    "ender_pearl": {
+      "find": [
+        1,
+        1
+      ],
+      "stack": 4,
+      "weightPer": 1,
+      "injury": 0.05,
+      "throwBoost": 1.8
+    },
+    "elytra": {
+      "find": [
+        1,
+        1
+      ],
+      "stack": 1,
+      "weightEach": 2,
+      "glideSeconds": 52,
+      "crashInjuryMin": 0.1,
+      "crashInjuryMax": 0.4,
+      "startDurability": 0.12
+    },
+    "boat": {
+      "find": [
+        1,
+        1
+      ],
+      "stack": 1,
+      "weightEach": 4,
+      "waterSpeed": 9.0,
+      "snowSpeed": 7.0
+    },
+    "water_bucket": {
+      "find": [
+        1,
+        1
+      ],
+      "stack": 1,
+      "weightEach": 3,
+      "weightEmpty": 1,
+      "fallSaveWindow": 1.5
+    },
+    "wind_charge": {
+      "find": [
+        1,
+        3
+      ],
+      "stack": 8,
+      "weightPer": 2,
+      "launch": 14.0,
+      "radius": 2.5
+    },
+    "goat_horn": {
+      "find": [
+        1,
+        1
+      ],
+      "stack": 1,
+      "weightEach": 1,
+      "cooldown": 7.0,
+      "markerSeconds": 10.0,
+      "scareSeconds": 10.0
+    },
+    "totem_of_undying": {
+      "find": [
+        1,
+        1
+      ],
+      "stack": 1,
+      "weightEach": 2,
+      "invincibleSeconds": 5.0,
+      "heatImmuneSeconds": 40.0
+    },
+    "golden_apple": {
+      "find": [
+        1,
+        1
+      ],
+      "stack": 4,
+      "weightPer": 1,
+      "hunger": 0.15,
+      "heal": 0.2,
+      "bonusStamina": 0.25,
+      "eatSeconds": 1.6
+    },
+    "enchanted_golden_apple": {
+      "find": [
+        1,
+        1
+      ],
+      "stack": 2,
+      "weightPer": 1,
+      "hunger": 0.2,
+      "heal": 0.5,
+      "bonusStamina": 0.5,
+      "heatImmuneSeconds": 180,
+      "halfInjurySeconds": 180,
+      "eatSeconds": 1.6
+    },
+    "cookie": {
+      "find": [
+        2,
+        5
+      ],
+      "stack": 16,
+      "weightPer": 4,
+      "hunger": 0.05,
+      "eatSeconds": 0.8
+    },
+    "steak": {
+      "find": [
+        1,
+        2
+      ],
+      "stack": 4,
+      "weightPer": 1,
+      "hunger": 0.35,
+      "bonusStamina": 0.1,
+      "eatSeconds": 1.6
+    },
+    "stone_sword": {
+      "find": [
+        1,
+        1
+      ],
+      "stack": 1,
+      "weightEach": 2,
+      "damage": 5,
+      "reach": 3.0
+    },
+    "rotten_flesh": {
+      "find": [
+        1,
+        1
+      ],
+      "stack": 16,
+      "weightPer": 4,
+      "hunger": 0.1,
+      "poisonChance": 0.8,
+      "poison": 0.1,
+      "eatSeconds": 1.6
+    }
+  },
+  "building": {
+    "reach": 4.5,
+    "quickPlaceStamina": 0.1,
+    "quickPlaceCooldown": 1.0,
+    "placedBlockLimit": 200,
+    "breakSeconds": 1.0,
+    "ladderStaminaMultiplier": 0.5,
+    "torchLightRange": 8.0,
+    "torchWarmRadius": 2.0,
+    "torchColdRemovedPerSecond": 0.005,
+    "blockSize": 1.0
+  },
+  "mobs": {
+    "enabled": true,
+    "spawnIntervalSeconds": 20,
+    "spawnChance": 0.35,
+    "maxPerPlayer": 2,
+    "minDistance": 16,
+    "maxDistance": 32,
+    "noSpawnNearLightRadius": 12,
+    "noSpawnVerticalFromClimber": 8,
+    "despawnDistance": 60,
+    "despawnAfterSeconds": 20,
+    "punchDamage": 2,
+    "creepers": "Rare",
+    "biomes": {
+      "Shore": [
+        "drowned"
+      ],
+      "Tropics": [
+        "spider",
+        "zombie",
+        "creeper"
+      ],
+      "Roots": [
+        "bogged",
+        "slime"
+      ],
+      "Alpine": [
+        "stray"
+      ],
+      "Mesa": [
+        "husk"
+      ],
+      "Volcano": [
+        "magma_cube"
+      ],
+      "Swamp": [
+        "zombie",
+        "skeleton"
+      ]
+    },
+    "types": {
+      "zombie": {
+        "health": 10,
+        "speed": 2.4,
+        "status": "Injury",
+        "amount": 0.075,
+        "burnsAtDawn": true
+      },
+      "husk": {
+        "health": 10,
+        "speed": 2.4,
+        "status": "Injury",
+        "amount": 0.05,
+        "extraStatus": "Hunger",
+        "extraAmount": 0.1,
+        "burnsAtDawn": false
+      },
+      "drowned": {
+        "health": 10,
+        "speed": 2.2,
+        "status": "Injury",
+        "amount": 0.075,
+        "burnsAtDawn": true
+      },
+      "skeleton": {
+        "health": 8,
+        "speed": 2.6,
+        "status": "Injury",
+        "amount": 0.05,
+        "ranged": true,
+        "burnsAtDawn": true
+      },
+      "stray": {
+        "health": 8,
+        "speed": 2.6,
+        "status": "Injury",
+        "amount": 0.05,
+        "extraStatus": "Cold",
+        "extraAmount": 0.05,
+        "ranged": true,
+        "burnsAtDawn": true
+      },
+      "bogged": {
+        "health": 8,
+        "speed": 2.4,
+        "status": "Injury",
+        "amount": 0.05,
+        "extraStatus": "Poison",
+        "extraAmount": 0.05,
+        "ranged": true,
+        "burnsAtDawn": true
+      },
+      "spider": {
+        "health": 8,
+        "speed": 3.0,
+        "status": "Injury",
+        "amount": 0.05,
+        "climbs": true,
+        "neutralAtDawn": true
+      },
+      "creeper": {
+        "health": 8,
+        "speed": 2.2,
+        "status": "Injury",
+        "amount": 0.2,
+        "explodes": true,
+        "rare": 0.25
+      },
+      "slime": {
+        "health": 4,
+        "speed": 2.0,
+        "status": "Injury",
+        "amount": 0.025,
+        "knockback": 6.0,
+        "vanishAtDawn": true
+      },
+      "magma_cube": {
+        "health": 4,
+        "speed": 2.0,
+        "status": "Injury",
+        "amount": 0.05,
+        "extraStatus": "Hot",
+        "extraAmount": 0.05,
+        "vanishAtDawn": true
+      }
+    },
+    "scale": 0.9
+  },
+  "templates": {
+    "_readme": "Advanced: the PEAK items Minecraft items are cloned from (for hand positions). Empty = automatic. Names are listed in BepInEx/config/BlockPeak/peak-items.txt.",
+    "generic": "",
+    "food": ""
+  }
+}
