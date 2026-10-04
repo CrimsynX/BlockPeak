@@ -98,8 +98,10 @@ namespace BlockPeak.Items
         {
             try
             {
-                if (__result == null || !(__instance is Luggage) || !ItemRegistry.Ready) return;
+                if (__result == null || !ItemRegistry.Ready) return;
                 if (!PhotonNetwork.IsMasterClient) return;
+                if (Modes.CustomOptions.On(Modes.CustomOptions.McItemsOnly)) { OnlyMinecraft(__instance, __result); return; }
+                if (!(__instance is Luggage)) return;
                 string pool = Loot.PoolName(__instance.GetSpawnPool());
                 bool biome = Loot.IsBiomePool(pool), rare = Loot.IsRarePool(pool);
                 if (!biome && !rare) return;
@@ -125,6 +127,48 @@ namespace BlockPeak.Items
                 }
             }
             catch (Exception e) { Health.Report("loot", e); }
+        }
+
+        /// <summary>
+        /// "Only Minecraft items" custom run: every item a spawner makes becomes a Minecraft item, except the start
+        /// area (BingBong, passport...), the respawn chests and gems/crystals (keep list in balance.json).
+        /// </summary>
+        private static void OnlyMinecraft(Spawner sp, List<GameObject> result)
+        {
+            if (sp is RespawnChest) return;
+            var M = Balance.Section("modes")["minecraftItemsOnly"] ?? new JObject();
+            float startRadius = Balance.F(M, "startAreaRadius", 40f);
+            Vector3 pos = sp.transform.position;
+            if (SpawnPoint.allSpawnPoints != null)
+                foreach (var s in SpawnPoint.allSpawnPoints)
+                    if (s != null && Vector3.Distance(s.transform.position, pos) < startRadius) return;
+            var keep = (M["keep"] as JArray)?.Select(t => ((string)t).ToLowerInvariant()).ToList() ?? new List<string>();
+
+            string pool = sp is Luggage ? Loot.PoolName(sp.GetSpawnPool()) : PoolForBiome(Game.CurrentBiome);
+            if (!Loot.IsBiomePool(pool) && !Loot.IsRarePool(pool)) pool = PoolForBiome(Game.CurrentBiome);
+            bool rare = Loot.IsRarePool(pool);
+            for (int i = 0; i < result.Count; i++)
+            {
+                var go = result[i];
+                if (go == null) continue;
+                if (go.GetComponent<Item>() == null || go.GetComponent<McItem>() != null) continue;
+                string n = go.name.ToLowerInvariant();
+                if (keep.Any(k => n.Contains(k))) continue;
+                var t = Loot.TemplateFor(Loot.Roll(pool, rare)) ?? Loot.TemplateFor(Loot.Roll(pool, false));
+                if (t != null) result[i] = t;
+            }
+        }
+
+        private static string PoolForBiome(Biome.BiomeType b)
+        {
+            string s = b.ToString().ToLowerInvariant();
+            if (s.Contains("tropic") || s.Contains("jungle")) return "LuggageJungle";
+            if (s.Contains("root")) return "LuggageRoots";
+            if (s.Contains("alpine") || s.Contains("tundra") || s.Contains("snow")) return "LuggageTundra";
+            if (s.Contains("mesa") || s.Contains("desert")) return "LuggageMesa";
+            if (s.Contains("volcano") || s.Contains("caldera")) return "LuggageCaldera";
+            if (s.Contains("peak") || s.Contains("kiln")) return "LuggageClimber";
+            return "LuggageBeach";
         }
     }
 

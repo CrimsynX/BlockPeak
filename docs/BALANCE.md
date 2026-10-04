@@ -1,7 +1,9 @@
 # balance.json reference
 
 `PEAK\BepInEx\config\BlockPeak\balance.json` is created on first start from `config/balance.json` in this repo.
-Edit, save, restart PEAK. Missing keys fall back to the defaults, so it is safe to delete lines. In multiplayer the
+Edit, save, restart PEAK. Missing keys fall back to the defaults, so it is safe to delete lines. When a new
+BlockPeak version changes the defaults (the `version` number at the top), your old file is saved as
+`balance.v1.backup.json` and the new default is written. In multiplayer the
 **host's** file is used by everyone (the host shares it through the lobby).
 
 Units are PEAK's: status amounts go from 0 to 1 where 1.0 is the whole stamina bar and 0.025 is one tick.
@@ -33,15 +35,18 @@ Weight: `weightPer: N` = one weight unit per N items (rounded up), `weightEach: 
 | Item | Extra keys |
 |---|---|
 | blocks | (shared by all block types) |
-| tnt | `fuseSeconds`, `radius`, `injury` (at the centre) |
+| blocks | `blockWeights`: blocks per weight unit for each block type (higher = lighter) |
+| tnt | `fuseSeconds`, `radius`, `injury` (at the centre), `knockback` |
 | ender_pearl | `injury`, `throwBoost` |
-| elytra | `startDurability` (0.12 = 12%), `glideSeconds` (flight time at that durability), `crashInjuryMin/Max` |
-| boat | `waterSpeed`, `snowSpeed` |
-| water_bucket | `fallSaveWindow` (seconds the fall-damage cancel lasts) |
+| elytra | `startDurability` (0.12 = 12%), `glideSeconds` (flight time at that durability), `crashInjuryMin/Max`, `fireworks` (boosts per elytra), `fireworkSeconds` |
+| boat | `waterSpeed`, `snowSpeed`, `landSpeed` |
+| potion_swiftness | `seconds`, `moveSpeed`, `climbSpeed` (0.35 = 35% faster) |
+| potion_leaping | `seconds`, `jumpMultiplier` |
 | wind_charge | `launch` (speed you get thrown at), `radius` |
 | goat_horn | `cooldown`, `markerSeconds`, `scareSeconds` |
 | totem_of_undying | `invincibleSeconds`, `heatImmuneSeconds` |
-| foods | `hunger` (how much hunger it removes), `heal` (injury removed), `bonusStamina`, `eatSeconds`, `heatImmuneSeconds`, `halfInjurySeconds`, `poisonChance`, `poison` |
+| foods | `hunger` (how much hunger it removes), `heal` (healing like PEAK's med kit), `bonusStamina`, `eatSeconds`, `milkInvincibilityMultiplier` (enchanted golden apple: PEAK milk's invincibility, this many times as long), `poisonChance`, `poison` |
+| any item | `hold: { rotation: [x,y,z], offset: [x,y,z], scale: n }` changes how the scout holds it |
 | stone_sword | `damage` (mob health points), `reach` |
 
 ## building
@@ -64,7 +69,19 @@ Weight: `weightPer: N` = one weight unit per N items (rounded up), `weightEach: 
 | `creepers` | Off / Rare / Normal |
 | `scale` | Mob size (0.9 = slightly smaller than in Minecraft so they fit PEAK's scouts) |
 | `biomes` | Which mobs each PEAK biome uses (Shore, Tropics, Roots, Alpine, Mesa, Volcano, Swamp) |
-| `types` | Per mob: `health`, `speed`, `status` + `amount` (what a hit does), optional `extraStatus` + `extraAmount`, `ranged`, `climbs`, `explodes`, `rare`, `knockback`, `burnsAtDawn`, `neutralAtDawn`, `vanishAtDawn` |
+| `heartsSeconds` | How long the hearts stay over a mob after it is hurt |
+| `types` | Per mob: `health`, `walkSpeed` (1 = a walking scout), `sprints`, `status` + `amount` (what a hit does), optional `extraStatus` + `extraAmount`, `ranged`, `climbs`, `explodes`, `rare`, `knockback`, `burnsAtDawn`, `neutralAtDawn`, `vanishAtDawn`. `warden`, `warden_sonic` and `horde_zombie` are used by the chase modes |
+
+## modes
+
+| Key | Meaning |
+|---|---|
+| `debugIgnoresCustomRun` | With debug mode on, let the check boxes work in normal runs too (for testing) |
+| `countdownSeconds`, `moveToStart` | Chase countdown, and how far the first scout must walk to start it |
+| `zombieChase` | `count`, `zombieHealth`, `zombieSpeed`, `spawnMinDistance/MaxDistance`, `drawDistance` |
+| `starterKit` | Item key → how many (`blocks` = the beach block) |
+| `minecraftItemsOnly` | `startAreaRadius`, `keep` (PEAK items whose names contain these words are never swapped) |
+| `rain` | `everyMin/Max` (seconds between rains), `seconds` (rain length), `radius`, `height`, `maxAlive`, `anvilsPerSecond`, `anvilInjury`, `anvilLifeSeconds`, `tntPerSecond`, `tntFuseMin/Max`, `tntRadius`, `tntInjury`, `tntKnockback` (all per scout) |
 
 ## templates (advanced)
 

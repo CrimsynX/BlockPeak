@@ -28,6 +28,23 @@ namespace BlockPeak.Core
             try
             {
                 string defaultText = ReadEmbeddedDefault();
+                if (File.Exists(LocalPath))
+                {
+                    // A balance file from an older BlockPeak would hide this version's new numbers: keep a copy, start fresh.
+                    try
+                    {
+                        int have = JObject.Parse(File.ReadAllText(LocalPath)).Value<int?>("version") ?? 0;
+                        int want = JObject.Parse(defaultText).Value<int?>("version") ?? 0;
+                        if (have < want)
+                        {
+                            string backup = Path.Combine(Plugin.DataDir, $"balance.v{have}.backup.json");
+                            File.Copy(LocalPath, backup, true);
+                            File.Delete(LocalPath);
+                            Plugin.Log.LogInfo($"balance.json was from an older BlockPeak; saved it as {Path.GetFileName(backup)} and wrote the new default.");
+                        }
+                    }
+                    catch { /* a broken file is reported below */ }
+                }
                 if (!File.Exists(LocalPath))
                 {
                     File.WriteAllText(LocalPath, defaultText);

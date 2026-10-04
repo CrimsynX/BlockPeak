@@ -120,6 +120,8 @@ namespace BlockPeak.Assets
         {
             int i = s.Length;
             while (i > 0 && char.IsDigit(s[i - 1])) i--;
+            // Newer sounds are named "roar_1", "step_3": the group is "roar", "step".
+            if (i < s.Length && i > 0 && s[i - 1] == '_') i--;
             return s.Substring(0, i);
         }
 

@@ -23,7 +23,15 @@ namespace BlockPeak.UI
             public float Until;
         }
 
+        private class Puff
+        {
+            public SpriteRenderer R;
+            public float Age, Life;
+        }
+
         private static readonly List<Particle> particles = new List<Particle>();
+        private static readonly List<Puff> puffs = new List<Puff>();
+        private static Sprite[] explosionFrames;
         private static readonly List<MarkerFx> markers = new List<MarkerFx>();
         private static Mesh cube;
         private static GameObject root;
@@ -75,6 +83,53 @@ namespace BlockPeak.UI
                 }
             }
             catch (System.Exception e) { Health.Report("fx", e); }
+        }
+
+        /// <summary>
+        /// Minecraft's explosion: a handful of animated grey puffs (particle/explosion_0..15) and a quick flash.
+        /// Very cheap on purpose (no physics particles, no PEAK effect prefabs).
+        /// </summary>
+        public static void Explosion(Vector3 at, float radius, bool light = false)
+        {
+            try
+            {
+                Ensure();
+                if (explosionFrames == null)
+                {
+                    var list = new List<Sprite>();
+                    for (int i = 0; i < 16; i++)
+                    {
+                        var t = McAssets.Tex("particle/explosion_" + i + ".png");
+                        list.Add(Sprite.Create(t, new Rect(0, 0, t.width, t.height), new Vector2(0.5f, 0.5f), t.width));
+                    }
+                    explosionFrames = list.ToArray();
+                }
+                int count = light ? 4 : Mathf.Clamp(Mathf.RoundToInt(radius * 3f), 6, 12);
+                for (int i = 0; i < count && puffs.Count < 60; i++)
+                {
+                    var go = new GameObject("fx_boom");
+                    go.transform.SetParent(root.transform, false);
+                    go.transform.position = at + Random.insideUnitSphere * radius * 0.6f;
+                    go.transform.localScale = Vector3.one * radius * Random.Range(0.5f, 0.9f);
+                    var r = go.AddComponent<SpriteRenderer>();
+                    r.sprite = explosionFrames[0];
+                    r.color = new Color(0.9f, 0.9f, 0.9f, 1f);
+                    puffs.Add(new Puff { R = r, Life = Random.Range(0.45f, 0.8f), Age = -Random.Range(0f, 0.15f) });
+                }
+                if (light) return; // rain TNT: puffs only
+                var lightGo = new GameObject("fx_flash");
+                lightGo.transform.SetParent(root.transform, false);
+                lightGo.transform.position = at;
+                var l = lightGo.AddComponent<Light>();
+                l.type = LightType.Point;
+                l.range = radius * 4f;
+                l.intensity = 4f;
+                l.color = new Color(1f, 0.9f, 0.7f);
+                l.shadows = LightShadows.None;
+                Object.Destroy(lightGo, 0.12f);
+                Burst(at, new[] { new Color(0.35f, 0.35f, 0.35f), new Color(0.55f, 0.55f, 0.55f) }, 8, radius * 1.5f, 0.9f, true, 0.12f);
+            }
+            catch (System.Exception e) { Health.Report("fx-explosion", e); }
         }
 
         public static void WaterSplash(Vector3 at)
@@ -130,6 +185,19 @@ namespace BlockPeak.UI
                 p.T.position += p.V * dt;
                 p.T.localScale = Vector3.one * p.Size * (1f - p.Age / p.Life * 0.7f);
             }
+            var camT = Game.Cam != null ? Game.Cam.transform : null;
+            for (int i = puffs.Count - 1; i >= 0; i--)
+            {
+                var p = puffs[i];
+                if (p.R == null) { puffs.RemoveAt(i); continue; }
+                p.Age += dt;
+                if (p.Age >= p.Life) { Object.Destroy(p.R.gameObject); puffs.RemoveAt(i); continue; }
+                p.R.enabled = p.Age >= 0f;
+                if (p.Age < 0f) continue;
+                int frame = Mathf.Clamp((int)(p.Age / p.Life * 16f), 0, 15);
+                p.R.sprite = explosionFrames[frame];
+                if (camT != null) p.R.transform.rotation = camT.rotation;
+            }
             for (int i = markers.Count - 1; i >= 0; i--)
             {
                 var m = markers[i];
@@ -154,6 +222,8 @@ namespace BlockPeak.UI
             particles.Clear();
             foreach (var m in markers) if (m.T != null) Object.Destroy(m.T.gameObject);
             markers.Clear();
+            foreach (var p in puffs) if (p.R != null) Object.Destroy(p.R.gameObject);
+            puffs.Clear();
         }
     }
 }

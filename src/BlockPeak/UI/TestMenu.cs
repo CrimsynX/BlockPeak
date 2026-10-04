@@ -28,22 +28,22 @@ namespace BlockPeak.UI
             Channel.On(Op.TestGive, (a, s) => HostGive(Channel.Str(a[0]), s));
             Channel.On(Op.TestMob, (a, s) =>
             {
-                if (!Cfg.TestMode.Value) return;
+                if (!Cfg.Debug) return;
                 var who = Character.AllCharacters.FirstOrDefault(c => c != null && c.photonView?.Owner?.ActorNumber == s);
-                McMobs.HostSpawnNear(who ?? Game.LocalChar, Channel.Str(a[0]));
+                MobDirector.HostSummon(who ?? Game.LocalChar, Channel.Str(a[0]), 1);
             });
             Channel.On(Op.TestClear, (a, s) =>
             {
-                if (!Cfg.TestMode.Value) return;
-                if (Channel.Str(a[0]) == "mobs") McMobs.HostClearAll();
+                if (!Cfg.Debug) return;
+                if (Channel.Str(a[0]) == "mobs") MobDirector.HostKillAll();
                 else BlockWorld.HostClearAll();
             });
         }
 
         public static void Tick()
         {
-            if (!Cfg.TestMode.Value) { if (Open) SetOpen(false); return; }
-            if (KeyInput.Down(Cfg.TestMenuKey.Value) && Game.LocalChar != null) SetOpen(!Open);
+            if (!Cfg.Debug) { if (Open) SetOpen(false); return; }
+            if (KeyInput.Down(Cfg.TestMenuKey.Value) && Game.LocalChar != null && !ChatBox.Open) SetOpen(!Open);
             if (Open && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) SetOpen(false);
             if (Open && Game.LocalChar == null) SetOpen(false);
         }
@@ -107,7 +107,7 @@ namespace BlockPeak.UI
 
             GUILayout.Space(10);
             GUILayout.Label("Mobs - click to spawn one about 6 m in front of you:");
-            var types = McMobs.AllTypes.ToList();
+            var types = MobDirector.Summonable.ToList();
             for (int i = 0; i < types.Count; i += 5)
             {
                 GUILayout.BeginHorizontal();
@@ -119,8 +119,8 @@ namespace BlockPeak.UI
 
             GUILayout.Space(10);
             GUILayout.BeginHorizontal();
-            bool night = GUILayout.Toggle(McMobs.ForceNight, " Mobs act like it's night (host)", GUILayout.Width(260));
-            if (night != McMobs.ForceNight) McMobs.ForceNight = night;
+            bool night = GUILayout.Toggle(BodyMobs.ForceNight, " Mobs act like it's night (host)", GUILayout.Width(260));
+            if (night != BodyMobs.ForceNight) { BodyMobs.ForceNight = night; McMobs.ForceNight = night; }
             if (GUILayout.Button("Remove all mobs", GUILayout.Width(150), GUILayout.Height(28))) Channel.Host(Op.TestClear, "mobs");
             if (GUILayout.Button("Remove all blocks", GUILayout.Width(150), GUILayout.Height(28))) Channel.Host(Op.TestClear, "blocks");
             GUILayout.FlexibleSpace();
@@ -134,7 +134,7 @@ namespace BlockPeak.UI
         /// <summary>Host: give a full stack of an item to a player.</summary>
         private static void HostGive(string key, int actor)
         {
-            if (!Cfg.TestMode.Value) return;
+            if (!Cfg.Debug) return;
             if (PhotonNetwork.InRoom && !PhotonNetwork.IsMasterClient) return;
             var def = ItemDefs.ByKey(key);
             if (def == null || !ItemRegistry.Templates.ContainsKey(def.Id)) return;
@@ -170,7 +170,7 @@ namespace BlockPeak.UI
     {
         private static bool Prefix(CharacterInput __instance)
         {
-            if (!TestMenu.Open) return true;
+            if (!TestMenu.Open && !ChatBox.Open) return true;
             __instance.ResetInput();
             __instance.pauseWasPressed = false;
             __instance.selectSlotForwardWasPressed = false;

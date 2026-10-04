@@ -54,19 +54,19 @@ namespace BlockPeak.Building
                     break;
                 }
                 case McKind.Torch:
-                case McKind.RedstoneTorch:
                 {
                     var tex = McAssets.Tex(def.Texture);
                     pb.MainTexture = tex;
                     mf.sharedMesh = Meshes.Torch(1f);
-                    bool red = def.Kind == McKind.RedstoneTorch;
+                    bool red = false;
                     pb.mr.sharedMaterial = Mat.Glowing(tex, red ? new Color(1f, 0.2f, 0.1f) : new Color(1f, 0.8f, 0.4f));
                     go.transform.localScale = Vector3.one * S;
-                    if (r.Facing == 0) go.transform.position = BlockWorld.CellBottom(r.Cell);
+                    if (r.Facing == 0) go.transform.position = r.Surface != Vector3.zero ? r.Surface : BlockWorld.CellBottom(r.Cell);
                     else
                     {
                         // Leaning against the wall like Minecraft's wall torch.
-                        go.transform.position = BlockWorld.CellCenter(r.Cell) - face * 0.42f * S - Vector3.up * 0.32f * S;
+                        Vector3 wallPoint = r.Surface != Vector3.zero ? r.Surface : BlockWorld.CellCenter(r.Cell) - face * 0.5f * S;
+                        go.transform.position = wallPoint + face * 0.08f * S - Vector3.up * 0.32f * S;
                         go.transform.rotation = Quaternion.AngleAxis(22.5f, Vector3.Cross(Vector3.up, face));
                     }
                     var box = go.AddComponent<BoxCollider>();
@@ -86,18 +86,20 @@ namespace BlockPeak.Building
                 }
                 case McKind.Ladder:
                 {
+                    // Looks like a Minecraft ladder; the climbing itself is a hidden PEAK rope (see LadderRopes).
                     var tex = McAssets.Tex(def.Texture);
                     pb.MainTexture = tex;
                     mf.sharedMesh = Meshes.ItemSprite(tex);
                     pb.mr.sharedMaterial = Mat.For(tex);
-                    go.transform.position = BlockWorld.CellCenter(r.Cell) - face * (0.5f * S - 0.04f);
+                    Vector3 wallPoint = r.Surface != Vector3.zero
+                        ? new Vector3(r.Surface.x, BlockWorld.CellCenter(r.Cell).y, r.Surface.z)
+                        : BlockWorld.CellCenter(r.Cell) - face * 0.5f * S;
+                    go.transform.position = wallPoint + face * 0.04f;
                     go.transform.rotation = Quaternion.LookRotation(-face, Vector3.up);
                     go.transform.localScale = Vector3.one * S;
                     var box = go.AddComponent<BoxCollider>();
-                    box.size = new Vector3(0.9f, 1f, 0.08f);
-                    var climb = go.AddComponent<ClimbModifierSurface>();
-                    climb.staminaUsageMultiplier = Balance.F(Balance.Section("building"), "ladderStaminaMultiplier", 0.5f);
-                    climb.speedMultiplier = 1.3f;
+                    box.isTrigger = true;
+                    box.size = new Vector3(0.9f, 1f, 0.3f);
                     break;
                 }
             }
@@ -163,8 +165,7 @@ namespace BlockPeak.Building
             switch (Def.Kind)
             {
                 case McKind.Tnt: return 0.4f;
-                case McKind.Torch:
-                case McKind.RedstoneTorch: return 0.25f;
+                case McKind.Torch: return 0.25f;
                 case McKind.Ladder: return 0.5f;
                 default:
                     float t = Balance.F(Balance.Section("building"), "breakSeconds", 1f);
@@ -185,57 +186,24 @@ namespace BlockPeak.Building
         public void ReleaseInteract(Character interactor) { }
     }
 
-    /// <summary>TNT explosions: Minecraft sound, PEAK's dynamite blast effect, damage and knockback for the local scout.</summary>
+    /// <summary>TNT explosions: Minecraft sound and puffs, damage and a big knockback for the local scout.</summary>
     public static class Explosions
     {
-        private static GameObject blastPrefab;
-        private static bool searched;
-
-        public static void OnExplosion(Vector3 at, float radius, float injury)
+        public static void OnExplosion(Vector3 at, float radius, float injury, bool light = false, float knockback = -1f)
         {
-            Sfx.At("random/explode", at, 1f, 1f, 80f);
-            SpawnBlastVisual(at);
+            Sfx.At("random/explode", at, light ? 0.8f : 1f, 1f, 80f);
+            Fx.Explosion(at, radius, light);
             var c = Game.LocalChar;
             if (c == null || c.data.dead) return;
-            float reach = radius * 1.6f;
+            float reach = radius * 1.8f;
             float d = Vector3.Distance(c.Center, at);
             if (d > reach) return;
             float k = 1f - d / reach;
             c.refs.afflictions.AddStatus(CharacterAfflictions.STATUSTYPE.Injury, injury * k * k);
-            Vector3 dir = (c.Center - at).normalized + Vector3.up * 0.6f;
-            c.AddForce(dir.normalized * (14f * k / Time.fixedDeltaTime), 0.9f, 1.1f);
-            if (k > 0.45f) c.Fall(1.5f * k);
-        }
-
-        private static void SpawnBlastVisual(Vector3 at)
-        {
-            try
-            {
-                if (!searched)
-                {
-                    searched = true;
-                    var db = Game.ItemDb;
-                    if (db != null)
-                        foreach (var it in db.itemLookup.Values)
-                        {
-                            var dyn = it != null ? it.GetComponent<Dynamite>() : null;
-                            if (dyn != null && dyn.explosionPrefab != null) { blastPrefab = dyn.explosionPrefab; break; }
-                        }
-                }
-                if (blastPrefab != null)
-                {
-                    var holder = new GameObject("bp_blast_holder");
-                    holder.SetActive(false);
-                    var e = Object.Instantiate(blastPrefab, at, Quaternion.identity, holder.transform);
-                    foreach (var aoe in e.GetComponentsInChildren<AOE>(true)) Object.DestroyImmediate(aoe);
-                    e.transform.SetParent(null, true);
-                    Object.Destroy(holder);
-                    Object.Destroy(e, 12f);
-                    return;
-                }
-            }
-            catch (System.Exception ex) { Health.Report("explosion-fx", ex); }
-            Fx.Burst(at, new[] { new Color(0.3f, 0.3f, 0.3f), new Color(0.6f, 0.6f, 0.6f), new Color(1f, 0.6f, 0.1f) }, 50, 7f, 1.5f);
+            Vector3 dir = (c.Center - at).normalized + Vector3.up * 0.8f;
+            float knock = knockback >= 0f ? knockback : Balance.F(Balance.ItemCfg("tnt"), "knockback", 26f);
+            c.AddForce(dir.normalized * (knock * k / Time.fixedDeltaTime), 0.9f, 1.1f);
+            if (k > 0.25f) c.Fall(2.5f * k);
         }
     }
 }

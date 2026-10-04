@@ -34,7 +34,7 @@ namespace BlockPeak.Items
                     Stacks.MarkRolled(item.data);
                 }
             }
-            if (def.Kind == McKind.Torch || def.Kind == McKind.RedstoneTorch)
+            if (def.Kind == McKind.Torch)
             {
                 var vis = transform.Find("BP_Visual");
                 var go = new GameObject("BP_TorchLight");
@@ -42,7 +42,7 @@ namespace BlockPeak.Items
                 go.transform.localPosition = new Vector3(0, 0.6f, 0);
                 heldLight = go.AddComponent<Light>();
                 heldLight.type = LightType.Point;
-                bool red = def.Kind == McKind.RedstoneTorch;
+                bool red = false;
                 heldLight.color = red ? new Color(1f, 0.25f, 0.15f) : new Color(1f, 0.78f, 0.45f);
                 heldLight.range = Balance.F(Balance.Section("building"), "torchLightRange", 8f) * (red ? 0.5f : 1f);
                 heldLight.intensity = red ? 1.2f : 2.2f;

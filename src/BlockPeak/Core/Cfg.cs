@@ -18,6 +18,7 @@ namespace BlockPeak.Core
         public static ConfigEntry<bool> MouseWheelSwitchesSlots;
 
         public static ConfigEntry<KeyCode> QuickPlaceKey;
+        public static ConfigEntry<KeyCode> FireworkKey;
 
         public static ConfigEntry<bool> MobsEnabled;
         public static ConfigEntry<float> MobDensity;
@@ -33,6 +34,9 @@ namespace BlockPeak.Core
         public static ConfigEntry<float> McSoundVolume;
         public static ConfigEntry<string> ItemShaderOverride;
         public static ConfigEntry<bool> TestMode;
+
+        /// <summary>Test/debug mode as it was when PEAK started (changing the .cfg mid-game does not unlock it).</summary>
+        public static bool Debug { get; private set; }
         public static ConfigEntry<KeyCode> TestMenuKey;
 
         public static void Bind(ConfigFile c)
@@ -49,6 +53,7 @@ namespace BlockPeak.Core
             MouseWheelSwitchesSlots = c.Bind("Hotbar", "MouseWheelSwitchesSlots", true, "Mouse wheel scrolls through the hotbar like Minecraft. Hold Alt to send the wheel to the held item instead (rope, etc.).");
 
             QuickPlaceKey = c.Bind("Building", "QuickPlaceKey", KeyCode.F, "While climbing: place a block from your hotbar into the wall under your feet.");
+            FireworkKey = c.Bind("Building", "FireworkKey", KeyCode.R, "While gliding with the elytra: use its one firework boost (the Use button works too).");
             PlacedBlockLimit = c.Bind("Building", "PlacedBlockLimit", 200, "Most blocks that can be placed in one run (host decides).");
 
             MobsEnabled = c.Bind("Mobs", "Enabled", true, "Spawn Minecraft mobs at night (host decides).");
@@ -63,8 +68,9 @@ namespace BlockPeak.Core
             PreferMinecraftVersion = c.Bind("Minecraft", "PreferVersion", "26.3", "Which installed Minecraft version to take textures and sounds from. Falls back to the newest one found.");
             McSoundVolume = c.Bind("Audio", "MinecraftSoundVolume", 0.8f, new ConfigDescription("Volume of Minecraft sounds.", new AcceptableValueRange<float>(0f, 1f)));
 
-            TestMode = c.Bind("Testing", "TestMode", false, "Creative-style test menu: press TestMenuKey to get any Minecraft item, spawn mobs and make it night. Works in the Airport and on the mountain. In multiplayer the HOST must have it on too.");
+            TestMode = c.Bind("Testing", "TestMode", false, "Debug mode, read when PEAK starts: the / command chat (/time set, /gamemode, /summon, /kill @e, /heal, /help) and the F6 item/mob menu. Switch it with the setup program before starting PEAK. In multiplayer the HOST must have it on too.");
             TestMenuKey = c.Bind("Testing", "TestMenuKey", KeyCode.F6, "Opens and closes the test menu (when TestMode is on).");
+            Debug = TestMode.Value;
             ItemShaderOverride = c.Bind("Debug", "ItemShaderOverride", "", "Advanced: name of a shader to draw Minecraft items with if they look wrong (e.g. 'Universal Render Pipeline/Lit'). Empty = copy PEAK's item material.");
         }
 

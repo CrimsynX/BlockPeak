@@ -162,7 +162,7 @@ namespace BlockPeak.Hotbar
         {
             var c = __instance.character;
             if (c == null || c.player == null) return;
-            int extra = 0;
+            float extra = 0;
             void Add(ItemSlot s)
             {
                 if (s == null || s.IsEmpty()) return;
@@ -175,7 +175,7 @@ namespace BlockPeak.Hotbar
             var bp = c.player.backpackSlot;
             if (!bp.IsEmpty() && bp.data != null && bp.data.TryGetDataEntry<BackpackData>(DataEntryKey.BackpackData, out var bd))
                 foreach (var s in bd.itemSlots) Add(s);
-            if (extra == 0) return;
+            if (Mathf.Abs(extra) < 0.001f) return;
             float cur = __instance.GetCurrentStatus(CharacterAfflictions.STATUSTYPE.Weight);
             __instance.SetStatus(CharacterAfflictions.STATUSTYPE.Weight, Mathf.Max(0f, cur + 0.025f * extra));
         }
@@ -191,7 +191,7 @@ namespace BlockPeak.Hotbar
         private static bool Prefix(CharacterItems __instance)
         {
             if (Cfg.ExtraSlotCount <= 0) return true;
-            if (UI.TestMenu.Open) return false;
+            if (UI.TestMenu.Open || UI.ChatBox.Open) return false;
             try { Switch(__instance); }
             catch (Exception e) { Health.Report("hotbar-switch", e); return true; }
             return false;

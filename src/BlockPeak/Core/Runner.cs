@@ -4,6 +4,7 @@ using BlockPeak.Building;
 using BlockPeak.Hotbar;
 using BlockPeak.Items;
 using BlockPeak.Mobs;
+using BlockPeak.Modes;
 using BlockPeak.Net;
 using BlockPeak.UI;
 using Photon.Pun;
@@ -34,9 +35,15 @@ namespace BlockPeak.Core
             {
                 BlockWorld.RegisterNet();
                 McMobs.RegisterNet();
+                BodyMobs.RegisterNet();
                 Projectiles.RegisterNet();
                 LocalEffects.RegisterNet();
+                Elytra.RegisterNet();
+                Boats.RegisterNet();
                 TestMenu.RegisterNet();
+                Commands.RegisterNet();
+                GameModes.RegisterNet();
+                Rains.RegisterNet();
             });
         }
 
@@ -53,16 +60,32 @@ namespace BlockPeak.Core
                 BlockWorld.TickHost();
                 BlockWorld.TickQuickPlace();
                 BlockWorld.TickWarmth();
+                PlacementPreview.Tick();
+                LadderRopes.TickVisuals();
             });
             Health.Guard("mobs", () =>
             {
                 McMobs.Tick();
+                BodyMobs.Tick();
                 McMobs.TickPunch();
             });
             Health.Guard("projectiles", Projectiles.Tick);
             Health.Guard("fx", Fx.Tick);
             Health.Guard("banner", Banner.Tick);
             Health.Guard("test-menu", TestMenu.Tick);
+            Health.Guard("effects", LocalEffects.Tick);
+            Health.Guard("chat", ChatBox.Tick);
+            Health.Guard("creative", Creative.Tick);
+            Health.Guard("elytra", Elytra.Tick);
+            Health.Guard("boats", Boats.Tick);
+            Health.Guard("modes", GameModes.Tick);
+        }
+
+        private void FixedUpdate()
+        {
+            Health.Guard("creative", Creative.FixedTick);
+            Health.Guard("elytra", Elytra.FixedTick);
+            Health.Guard("boats", Boats.FixedTick);
         }
 
         private void LateUpdate()
@@ -74,6 +97,9 @@ namespace BlockPeak.Core
         {
             Health.Guard("banner-draw", Banner.Draw);
             Health.Guard("test-menu-draw", TestMenu.Draw);
+            Health.Guard("chat-draw", ChatBox.Draw);
+            Health.Guard("modes-draw", GameModes.Draw);
+            Health.Guard("options-draw", CustomOptions.Draw);
         }
 
         private void CheckScene()
@@ -83,9 +109,14 @@ namespace BlockPeak.Core
             Health.Verbose($"Scene {lastScene} -> {scene}");
             lastScene = scene;
             BlockWorld.Clear();
+            LadderRopes.Clear();
+            Elytra.Clear();
+            Boats.Clear();
             McMobs.Clear();
+            BodyMobs.Clear();
             Projectiles.Clear();
             Fx.Clear();
+            Rains.Clear();
             LocalEffects.Reset();
             McChests.Reset();
             if (scene != "Airport" && !scene.ToLowerInvariant().Contains("title") && !scene.ToLowerInvariant().Contains("menu")) Loot.ResetRun();

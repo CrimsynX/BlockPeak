@@ -10,7 +10,7 @@ send `LogOutput.log` plus `BepInEx\config\BlockPeak\peak-items.txt`.
 | Problem | Try this |
 |---|---|
 | PEAK crashes or closes at start after installing | Make sure PEAK is up to date in Steam. In Steam → PEAK → Properties → Launch options add `-dx12`. Still crashing: setup → **Mods OFF**, check that PEAK starts vanilla, then report the log. |
-| Nothing changed in game | Did the game start through Steam with mods ON? The log should say `BlockPeak 0.1.0 starting`. If there is no `BepInEx\LogOutput.log` at all, BepInEx is not running: press Install / Update again. |
+| Nothing changed in game | Did the game start through Steam with mods ON? The log should say `BlockPeak 0.2.0 starting`. If there is no `BepInEx\LogOutput.log` at all, BepInEx is not running: press Install / Update again. |
 | Grey/purple checker textures instead of Minecraft ones | Minecraft 26.3 was not found. Start Minecraft 26.3 once in the Modrinth App, then setup → **Copy Minecraft textures**. If Minecraft is somewhere unusual, set `MinecraftPath` in the .cfg to the folder that contains `versions` and `assets` (for the Modrinth App: `%AppData%\ModrinthApp\meta`). |
 | No Minecraft sounds | Same as above; the launcher must have downloaded the sounds (start the game once). |
 | Minecraft items are invisible, black or pink | Set `ItemShaderOverride` in the .cfg (Debug section), e.g. `Universal Render Pipeline/Lit`, and restart. |
@@ -23,6 +23,10 @@ send `LogOutput.log` plus `BepInEx\config\BlockPeak\peak-items.txt`.
 | I want to play in a normal (non-modded) lobby | setup → **Mods OFF**. **Mods ON** to come back. |
 | Too many / too few mobs | `Density`, `MaxPerPlayer`, `Creepers` in the .cfg (host decides). `Enabled = false` turns mobs off. |
 | Too much / too little Minecraft loot | `MinecraftShare` and `MinecraftChestChance` in the .cfg (host decides). |
+| F6 or / does nothing | Debug mode is read when PEAK starts: setup → **Debug mode ON**, then restart PEAK. In multiplayer the host needs it too. |
+| My balance.json changes are gone after updating | Version 0.2.0 has new defaults, so your old file was saved as `balance.v1.backup.json` next to it. Copy your changes across. |
+| The BlockPeak check boxes are not in the Custom run window | They may show as a plain list on the left of the screen instead. They only work in a **Custom run**, and only the host's count. |
+| Low FPS in Zombie Chase | Lower `modes.zombieChase.count` or `drawDistance` in balance.json (host). |
 | Something else is weird after a PEAK update | Set `SafeMode = true` in the .cfg to switch BlockPeak off without uninstalling, and check for a BlockPeak update. |
 
 ## Mod managers

@@ -14,25 +14,41 @@ tex misc/enchanted_glint_item.png
 tex particle/flame.png
 tex particle/generic_0.png
 tex particle/big_smoke_0.png
+tex particle/explosion_0.png
+tex particle/explosion_1.png
+tex particle/explosion_2.png
+tex particle/explosion_3.png
+tex particle/explosion_4.png
+tex particle/explosion_5.png
+tex particle/explosion_6.png
+tex particle/explosion_7.png
+tex particle/explosion_8.png
+tex particle/explosion_9.png
+tex particle/explosion_10.png
+tex particle/explosion_11.png
+tex particle/explosion_12.png
+tex particle/explosion_13.png
+tex particle/explosion_14.png
+tex particle/explosion_15.png
 
 # --- items ---
 tex item/ender_pearl.png
 tex item/elytra.png
+tex item/firework_rocket.png
 tex item/goat_horn.png
 tex item/totem_of_undying.png
 tex item/golden_apple.png
 tex item/cookie.png
 tex item/cooked_beef.png
 tex item/oak_boat.png
-tex item/water_bucket.png
-tex item/bucket.png
 tex item/wind_charge.png
 tex item/stone_sword.png
 tex item/rotten_flesh.png
+tex item/potion.png
+tex item/potion_overlay.png
 
 # --- blocks ---
 tex block/torch.png
-tex block/redstone_torch.png
 tex block/ladder.png
 tex block/tnt_side.png
 tex block/tnt_top.png
@@ -46,6 +62,8 @@ tex block/basalt_side.png
 tex block/basalt_top.png
 tex block/deepslate.png
 tex block/stone_bricks.png
+tex block/anvil.png
+tex block/anvil_top.png
 
 # --- mobs and entities ---
 tex entity/zombie/zombie.png
@@ -64,6 +82,11 @@ tex entity/slime/slime.png
 tex entity/slime/magmacube.png
 tex entity/chest/normal.png
 tex entity/boat/oak.png
+tex entity/equipment/wings/elytra.png
+tex entity/warden/warden.png
+tex gui/sprites/hud/heart/container.png
+tex gui/sprites/hud/heart/full.png
+tex gui/sprites/hud/heart/half.png
 
 # --- sounds ---
 snd random/pop.ogg
@@ -71,6 +94,7 @@ snd random/eat1.ogg
 snd random/eat2.ogg
 snd random/eat3.ogg
 snd random/burp.ogg
+snd random/drink.ogg
 snd random/explode1.ogg
 snd random/explode2.ogg
 snd random/explode3.ogg
@@ -91,12 +115,10 @@ snd mob/endermen/portal2.ogg
 snd item/totem/
 snd item/goat_horn/
 snd item/elytra/
-snd item/bucket/empty1.ogg
-snd item/bucket/empty2.ogg
-snd item/bucket/empty3.ogg
-snd item/bucket/fill1.ogg
-snd item/bucket/fill2.ogg
-snd item/bucket/fill3.ogg
+snd item/armor/equip_generic1.ogg
+snd item/armor/equip_generic2.ogg
+snd item/armor/equip_generic3.ogg
+snd fireworks/launch1.ogg
 snd entity/wind_charge/
 snd entity/boat/
 snd entity/player/attack/
@@ -141,3 +163,5 @@ snd mob/spider/
 snd mob/creeper/
 snd mob/slime/
 snd mob/magmacube/
+snd mob/warden/
+snd random/anvil_land.ogg

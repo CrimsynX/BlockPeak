@@ -11,6 +11,7 @@ namespace BlockPeak.Items
         public const DataEntryKey RolledKey = (DataEntryKey)201;   // BoolItemData: spawn count already rolled
         public const DataEntryKey DurabilityKey = (DataEntryKey)202; // FloatItemData: 0..1 (elytra)
         public const DataEntryKey CooldownKey = (DataEntryKey)203;   // FloatItemData: (unused for now)
+        public const DataEntryKey FireworksKey = (DataEntryKey)204;  // IntItemData: elytra firework boosts used
 
         public static int Count(ItemInstanceData data)
         {
@@ -39,6 +40,16 @@ namespace BlockPeak.Items
             if (data == null) return;
             if (!data.TryGetDataEntry<BoolItemData>(RolledKey, out var b)) b = data.RegisterNewEntry<BoolItemData>(RolledKey);
             b.Value = true;
+        }
+
+        public static int FireworksUsed(ItemInstanceData data) =>
+            data != null && data.TryGetDataEntry<IntItemData>(FireworksKey, out var v) ? v.Value : 0;
+
+        public static void SetFireworksUsed(ItemInstanceData data, int used)
+        {
+            if (data == null) return;
+            if (!data.TryGetDataEntry<IntItemData>(FireworksKey, out var v)) v = data.RegisterNewEntry<IntItemData>(FireworksKey);
+            v.Value = used;
         }
 
         public static float Durability(ItemInstanceData data, float fallback)

@@ -26,7 +26,20 @@ namespace BlockPeak.Building
             public string Key;
             public byte Facing; // 0 = standing / full block, 1..4 = attached to a wall facing +x,-x,+z,-z
             public bool Lit;
+            public Vector3 Surface; // ladders/wall torches: the exact wall point they hang on
             public PlacedBlock View;
+        }
+
+        public enum PlaceState { None, Ok, Blocked }
+
+        public struct Placement
+        {
+            public PlaceState State;
+            public Vector3Int Cell;
+            public byte Facing;
+            public Vector3 Surface;
+            public Vector3 Normal;
+            public string Why;
         }
 
         private static readonly Dictionary<int, Record> byId = new Dictionary<int, Record>();
@@ -44,7 +57,7 @@ namespace BlockPeak.Building
         public static void RegisterNet()
         {
             Channel.On(Op.BlockPlaceReq, HostPlace);
-            Channel.On(Op.BlockPlaced, (a, s) => Spawn(Channel.Int(a[0]), V3I(Channel.Vec(a[1])), Channel.Str(a[2]), Channel.Byte(a[3]), false, true));
+            Channel.On(Op.BlockPlaced, (a, s) => Spawn(Channel.Int(a[0]), V3I(Channel.Vec(a[1])), Channel.Str(a[2]), Channel.Byte(a[3]), false, true, a.Length > 4 ? Channel.Vec(a[4]) : Vector3.zero));
             Channel.On(Op.BlockBreakReq, HostBreak);
             Channel.On(Op.BlockBroken, (a, s) => Remove(Channel.Int(a[0]), Channel.Bool(a[1])));
             Channel.On(Op.BlockSnapshot, OnSnapshot);
@@ -73,59 +86,61 @@ namespace BlockPeak.Building
 
         // ------------------------------------------------------------ local player: placing
 
-        /// <summary>Place the held block where the camera looks. True if a request went out (the item gets used up).</summary>
-        public static bool TryPlaceFromView(McItemDef def)
+        /// <summary>Where the held block would go if placed now (also drives the outline preview).</summary>
+        public static Placement ComputePlacement(McItemDef def)
         {
-            if (!Game.InRun && !Game.InAirport) return false;
+            var p = new Placement { State = PlaceState.None };
+            if (def == null || (!Game.InRun && !Game.InAirport) || Game.LocalChar == null) return p;
             float reach = Balance.F(B, "reach", 4.5f);
             var cam = Game.CamPos;
             var dir = Game.CamForward;
-            if (!Physics.Raycast(cam, dir, out var hit, reach + 1.5f, Game.TerrainMask, QueryTriggerInteraction.Ignore)) return Fail();
-            if (Vector3.Distance(Game.LocalChar.Center, hit.point) > reach + 1f) return Fail();
+            if (!Physics.Raycast(cam, dir, out var hit, reach + 1.5f, Game.TerrainMask, QueryTriggerInteraction.Ignore)) return p;
+            if (Vector3.Distance(Game.LocalChar.Center, hit.point) > reach + 1f) return p;
 
-            Vector3Int cell;
-            byte facing = 0;
             var onBlock = hit.collider.GetComponentInParent<PlacedBlock>();
             Vector3 n = hit.normal;
             bool wall = Mathf.Abs(n.y) < 0.5f;
-
+            p.Normal = n;
+            p.Surface = hit.point;
             switch (def.Kind)
             {
                 case McKind.Ladder:
-                    if (!wall) return Fail();
-                    facing = FacingFor(n);
-                    cell = CellAt(hit.point + n * Size * 0.25f);
+                    if (!wall) return p;
+                    p.Facing = FacingFor(n);
+                    p.Cell = CellAt(hit.point + n * Size * 0.25f);
                     break;
                 case McKind.Torch:
-                case McKind.RedstoneTorch:
-                    if (n.y < -0.5f) return Fail();
-                    facing = wall ? FacingFor(n) : (byte)0;
-                    cell = CellAt(hit.point + n * Size * 0.25f);
+                    if (n.y < -0.5f) return p;
+                    p.Facing = wall ? FacingFor(n) : (byte)0;
+                    p.Cell = CellAt(hit.point + n * Size * 0.25f);
                     break;
                 default:
                     if (onBlock != null && onBlock.Record != null && onBlock.IsFullBlock)
-                        cell = onBlock.Record.Cell + AxisOf(n);
+                        p.Cell = onBlock.Record.Cell + AxisOf(n);
                     else
-                        cell = CellAt(hit.point + n * Size * 0.5f);
+                        p.Cell = CellAt(hit.point + n * Size * 0.5f);
                     break;
             }
-
-            if (byCell.ContainsKey(cell)) return Fail();
-            if (BlocksCharacter(cell, def)) return Fail();
+            p.State = PlaceState.Ok;
             int limit = Balance.I(B, "placedBlockLimit", 200);
-            if (Count >= limit)
-            {
-                Banner.Toast($"Block limit reached ({limit}). Break some blocks first.");
-                return false;
-            }
-            Channel.Host(Op.BlockPlaceReq, (Vector3)cell, def.Key, facing);
-            Sfx.At(PlaceSound(def), CellCenter(cell), 0.8f);
-            return true;
+            if (byCell.ContainsKey(p.Cell)) { p.State = PlaceState.Blocked; }
+            else if (BlocksCharacter(p.Cell, def)) { p.State = PlaceState.Blocked; }
+            else if (Count >= limit) { p.State = PlaceState.Blocked; p.Why = $"Block limit reached ({limit}). Break some blocks first."; }
+            return p;
         }
 
-        private static bool Fail()
+        /// <summary>Place the held block where the camera looks. True if a request went out (the item gets used up).</summary>
+        public static bool TryPlaceFromView(McItemDef def)
         {
-            return false;
+            var p = ComputePlacement(def);
+            if (p.State != PlaceState.Ok)
+            {
+                if (p.Why != null) Banner.Toast(p.Why);
+                return false;
+            }
+            Channel.Host(Op.BlockPlaceReq, (Vector3)p.Cell, def.Key, p.Facing, -1, p.Surface);
+            Sfx.At(PlaceSound(def), CellCenter(p.Cell), 0.8f);
+            return true;
         }
 
         private static Vector3Int AxisOf(Vector3 n)
@@ -176,7 +191,7 @@ namespace BlockPeak.Building
             switch (def.Key)
             {
                 case "sand": return "dig/sand";
-                case "oak_planks": case "ladder": case "torch": case "redstone_torch": return "dig/wood";
+                case "oak_planks": case "ladder": case "torch": return "dig/wood";
                 case "moss_block": case "tnt": return "dig/grass";
                 case "packed_ice": return "dig/stone";
                 default: return "dig/stone";
@@ -205,7 +220,7 @@ namespace BlockPeak.Building
             lastQuickPlace = Time.time;
             c.UseStamina(Balance.F(B, "quickPlaceStamina", 0.1f));
             var def = ItemDefs.ById(slot.prefab.itemID);
-            Channel.Host(Op.BlockPlaceReq, (Vector3)cell, def.Key, (byte)0, (int)slot.itemSlotID);
+            Channel.Host(Op.BlockPlaceReq, (Vector3)cell, def.Key, (byte)0, (int)slot.itemSlotID, Vector3.zero);
             Sfx.At(PlaceSound(def), CellCenter(cell), 0.8f);
         }
 
@@ -218,23 +233,15 @@ namespace BlockPeak.Building
             string key = Channel.Str(a[1]);
             byte facing = Channel.Byte(a[2]);
             int fromSlot = a.Length > 3 ? Channel.Int(a[3]) : -1;
+            Vector3 surface = a.Length > 4 ? Channel.Vec(a[4]) : Vector3.zero;
             var def = ItemDefs.ByKey(key);
             if (def == null || byCell.ContainsKey(cell) || Count >= Balance.I(B, "placedBlockLimit", 200)) return;
 
             if (fromSlot >= 0 && !TakeFromSlot(sender, (byte)fromSlot, def)) return;
 
             int id = nextId++;
-            Channel.All(Op.BlockPlaced, true, id, (Vector3)cell, key, facing);
-            // Redstone torch next to TNT lights it, and TNT placed next to a redstone torch too.
-            if (def.Kind == McKind.RedstoneTorch || def.Kind == McKind.Tnt)
-            {
-                foreach (var nb in Neighbours(cell))
-                {
-                    if (!byCell.TryGetValue(nb, out var other)) continue;
-                    if (def.Kind == McKind.RedstoneTorch && other.Key == "tnt") Ignite(other.Id, Balance.F(Balance.ItemCfg("tnt"), "fuseSeconds", 4f));
-                    if (def.Kind == McKind.Tnt && other.Key == "redstone_torch") Ignite(id, Balance.F(Balance.ItemCfg("tnt"), "fuseSeconds", 4f));
-                }
-            }
+            Channel.All(Op.BlockPlaced, true, id, (Vector3)cell, key, facing, surface);
+            if (def.Kind == McKind.Ladder) LadderRopes.HostRebuild(cell, facing);
         }
 
         /// <summary>Host: take one item from a player's hotbar slot (quick-place) and sync their inventory.</summary>
@@ -271,6 +278,11 @@ namespace BlockPeak.Building
             if (!byId.TryGetValue(id, out var r) || r.Lit) return;
             Channel.All(Op.BlockBroken, true, id, true);
             DropItem(r);
+            if (r.Key == "ladder")
+            {
+                LadderRopes.HostRebuild(r.Cell + Vector3Int.up, r.Facing);
+                LadderRopes.HostRebuild(r.Cell + Vector3Int.down, r.Facing);
+            }
         }
 
         private static void DropItem(Record r)
@@ -318,8 +330,9 @@ namespace BlockPeak.Building
                 if (d > radius) continue;
                 if (r.Key == "tnt") { Ignite(r.Id, UnityEngine.Random.Range(0.5f, 1.5f)); continue; }
                 Channel.All(Op.BlockBroken, true, r.Id, false);
+                if (r.Key == "ladder") { LadderRopes.HostRebuild(r.Cell + Vector3Int.up, r.Facing); LadderRopes.HostRebuild(r.Cell + Vector3Int.down, r.Facing); }
             }
-            Mobs.McMobs.HostExplosion(at, radius);
+            Mobs.MobDirector.HostExplosion(at, radius);
         }
 
         /// <summary>Host: tell a newly joined player about every block.</summary>
@@ -337,7 +350,8 @@ namespace BlockPeak.Building
                     list.SelectMany(r => new float[] { r.Cell.x, r.Cell.y, r.Cell.z }).ToArray(),
                     list.Select(r => r.Key).ToArray(),
                     list.Select(r => r.Facing).ToArray(),
-                    list.Select(r => r.Lit).ToArray());
+                    list.Select(r => r.Lit).ToArray(),
+                    list.SelectMany(r => new float[] { r.Surface.x, r.Surface.y, r.Surface.z }).ToArray());
             }
         }
 
@@ -348,20 +362,22 @@ namespace BlockPeak.Building
             var keys = (string[])a[2];
             var facings = (byte[])a[3];
             var lit = (bool[])a[4];
+            var surf = a.Length > 5 ? (float[])a[5] : null;
             for (int i = 0; i < ids.Length; i++)
-                if (!byId.ContainsKey(ids[i])) Spawn(ids[i], new Vector3Int((int)cells[i * 3], (int)cells[i * 3 + 1], (int)cells[i * 3 + 2]), keys[i], facings[i], lit[i], false);
+                if (!byId.ContainsKey(ids[i])) Spawn(ids[i], new Vector3Int((int)cells[i * 3], (int)cells[i * 3 + 1], (int)cells[i * 3 + 2]), keys[i], facings[i], lit[i], false,
+                    surf != null ? new Vector3(surf[i * 3], surf[i * 3 + 1], surf[i * 3 + 2]) : Vector3.zero);
         }
 
         // ------------------------------------------------------------ everyone
 
-        private static void Spawn(int id, Vector3Int cell, string key, byte facing, bool lit, bool effects)
+        private static void Spawn(int id, Vector3Int cell, string key, byte facing, bool lit, bool effects, Vector3 surface)
         {
             var def = ItemDefs.ByKey(key);
             if (def == null || byId.ContainsKey(id)) return;
             if (byCell.TryGetValue(cell, out var old)) Remove(old.Id, false);
             if (root == null) { root = new GameObject("BlockPeak.Blocks"); }
             nextId = Math.Max(nextId, id + 1);
-            var r = new Record { Id = id, Cell = cell, Key = key, Facing = facing, Lit = lit };
+            var r = new Record { Id = id, Cell = cell, Key = key, Facing = facing, Lit = lit, Surface = surface };
             byId[id] = r;
             byCell[cell] = r;
             r.View = PlacedBlock.Create(r, def, root.transform);
@@ -385,12 +401,12 @@ namespace BlockPeak.Building
             }
         }
 
-        /// <summary>Is there a torch (or redstone torch) within this distance? Used for mob spawning and warmth.</summary>
+        /// <summary>Is there a torch within this distance? Used for mob spawning and warmth.</summary>
         public static bool LightNear(Vector3 pos, float radius)
         {
             float r2 = radius * radius;
             foreach (var r in byId.Values)
-                if ((r.Key == "torch" || r.Key == "redstone_torch") && (CellCenter(r.Cell) - pos).sqrMagnitude < r2) return true;
+                if (r.Key == "torch" && (CellCenter(r.Cell) - pos).sqrMagnitude < r2) return true;
             return false;
         }
 
@@ -419,7 +435,10 @@ namespace BlockPeak.Building
         {
             if (!IsAuthority) return;
             foreach (var r in byId.Values.ToList()) Channel.All(Op.BlockBroken, true, r.Id, false);
+            LadderRopes.HostDestroyAll();
         }
+
+        public static Record At(Vector3Int cell) => byCell.TryGetValue(cell, out var r) ? r : null;
 
         public static void RequestBreak(int id) => Channel.Host(Op.BlockBreakReq, id);
         public static void RequestIgnite(int id) => Channel.Host(Op.TntIgniteReq, id);

@@ -97,7 +97,7 @@ namespace BlockPeak.Items
                 }
                 try
                 {
-                    var t = Build(def, def.Kind == McKind.Food ? food : generic);
+                    var t = Build(def, def.Kind == McKind.Food || def.Kind == McKind.Potion ? food : generic);
                     Templates[def.Id] = t;
                     db.itemLookup[def.Id] = t;
                     pool.ResourceCache["0_Items/" + def.PrefabName] = t.gameObject;
@@ -179,7 +179,7 @@ namespace BlockPeak.Items
             go.name = def.PrefabName;
             go.SetActive(false);
             var item = go.GetComponent<Item>();
-            bool keepFeedback = def.Kind == McKind.Food;
+            bool keepFeedback = def.Kind == McKind.Food || def.Kind == McKind.Potion;
 
             // 1) Where did the original model sit (so PEAK's hand points still line up)?
             Bounds local = LocalBounds(go.transform);
@@ -228,9 +228,10 @@ namespace BlockPeak.Items
             item.offsetLuggageSpawn = false;
             item.itemTags = def.Kind == McKind.Food ? Item.ItemTags.PackagedFood : Item.ItemTags.None;
             item.blocksSprint = false;
-            item.carryWeight = def.WeightFor(1);
-            item.usingTimePrimary = def.Kind == McKind.Food ? Balance.F(def.Cfg, "eatSeconds", 1.6f) : 0f;
-            item.showUseProgress = def.Kind == McKind.Food;
+            item.carryWeight = Mathf.Max(1, Mathf.CeilToInt(def.WeightFor(1)));
+            bool consumable = def.Kind == McKind.Food || def.Kind == McKind.Potion;
+            item.usingTimePrimary = consumable ? Balance.F(def.Cfg, "eatSeconds", 1.6f) : 0f;
+            item.showUseProgress = consumable;
             var ui = item.UIData;
             ui.itemName = def.LocName;
             ui.icon = IconFor(def);
@@ -284,11 +285,42 @@ namespace BlockPeak.Items
             if (Icons.TryGetValue(def.Key, out var t) && t != null && texturesWereReal == McAssets.HasRealTextures) return t;
             if (def.Kind == McKind.Block || def.Kind == McKind.Tnt)
                 t = Meshes.BlockIcon(McAssets.Tex(def.Side), McAssets.Tex(def.Top ?? def.Side));
+            else if (def.Kind == McKind.Potion)
+                t = Potion(McAssets.Tex("item/potion.png"), McAssets.Tex("item/potion_overlay.png"), def.Tint);
             else
                 t = McAssets.Tex(def.Texture);
             if (def.Key == "enchanted_golden_apple") t = Glint(t);
             Icons[def.Key] = t;
             return t;
+        }
+
+        /// <summary>Minecraft draws potions as a bottle plus a tinted liquid layer.</summary>
+        private static Texture2D Potion(Texture2D bottle, Texture2D overlay, Color tint)
+        {
+            try
+            {
+                int w = bottle.width, h = bottle.height;
+                var dst = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, name = "mc_potion_" + ColorUtility.ToHtmlStringRGB(tint) };
+                var b = bottle.GetPixels();
+                var o = overlay.width == w && overlay.height == h ? overlay.GetPixels() : null;
+                var px = new Color[b.Length];
+                for (int i = 0; i < b.Length; i++)
+                {
+                    Color c = b[i];
+                    if (o != null && o[i].a > 0.1f)
+                    {
+                        Color liquid = o[i] * tint;
+                        liquid.a = 1f;
+                        c = Color.Lerp(c, liquid, o[i].a);
+                        c.a = Mathf.Max(b[i].a, o[i].a);
+                    }
+                    px[i] = c;
+                }
+                dst.SetPixels(px);
+                dst.Apply();
+                return dst;
+            }
+            catch { return bottle; }
         }
 
         /// <summary>Purple shimmer baked into the enchanted apple's icon/texture.</summary>
@@ -312,8 +344,25 @@ namespace BlockPeak.Items
             catch { return src; }
         }
 
+        /// <summary>Where the item's model sits, from the original PEAK model (so the scout's grip points fit).</summary>
+        public class VisualAnchor : MonoBehaviour
+        {
+            public Vector3 basePos;
+        }
+
+        private static Vector3 V3(Newtonsoft.Json.Linq.JToken t, Vector3 fallback)
+        {
+            var a = t as Newtonsoft.Json.Linq.JArray;
+            if (a == null || a.Count < 3) return fallback;
+            try { return new Vector3((float)a[0], (float)a[1], (float)a[2]); } catch { return fallback; }
+        }
+
         public static void ApplyLooks(McItemDef def, MeshFilter mf, MeshRenderer mr, Transform t)
         {
+            var anchor = t.GetComponent<VisualAnchor>() ?? t.gameObject.AddComponent<VisualAnchor>();
+            if (anchor.basePos == Vector3.zero) anchor.basePos = t.localPosition;
+            Vector3 offset = Vector3.zero, rot = Vector3.zero;
+            float scale;
             switch (def.Kind)
             {
                 case McKind.Block:
@@ -322,31 +371,46 @@ namespace BlockPeak.Items
                     var atlas = Meshes.BlockAtlas(McAssets.Tex(def.Side), McAssets.Tex(def.Top ?? def.Side), McAssets.Tex(def.Bottom ?? def.Top ?? def.Side));
                     mf.sharedMesh = Meshes.Cube(1f, "mc_cube");
                     mr.sharedMaterial = Mat.For(atlas);
-                    t.localScale = Vector3.one * 0.3f;
-                    t.localPosition -= new Vector3(0, 0.15f, 0);
+                    scale = 0.3f;
+                    offset = new Vector3(0, -0.15f, 0);
                     break;
                 }
                 case McKind.Torch:
-                case McKind.RedstoneTorch:
                 {
                     var tex = McAssets.Tex(def.Texture);
                     mf.sharedMesh = Meshes.Torch(1f);
-                    mr.sharedMaterial = Mat.Glowing(tex, def.Kind == McKind.Torch ? new Color(1f, 0.8f, 0.4f) : new Color(1f, 0.2f, 0.1f));
-                    t.localScale = Vector3.one * 0.7f;
-                    t.localPosition -= new Vector3(0, 0.22f, 0);
+                    mr.sharedMaterial = Mat.Glowing(tex, new Color(1f, 0.8f, 0.4f));
+                    scale = 0.7f;
+                    offset = new Vector3(0, -0.22f, 0);
                     break;
                 }
                 default:
                 {
-                    var tex = def.Key == "enchanted_golden_apple" ? IconFor(def) : McAssets.Tex(def.Texture);
+                    var tex = IconFor(def);
                     mf.sharedMesh = Meshes.ItemSprite(tex);
                     mr.sharedMaterial = Mat.For(tex);
-                    float s = def.Kind == McKind.Sword ? 0.55f : def.Kind == McKind.Elytra || def.Kind == McKind.Boat ? 0.5f : 0.38f;
-                    t.localScale = Vector3.one * s;
-                    if (def.Kind == McKind.Sword) t.localRotation = Quaternion.Euler(0, 0, -45f);
+                    scale = def.Kind == McKind.Sword ? 0.6f : def.Kind == McKind.Elytra || def.Kind == McKind.Boat ? 0.5f : 0.38f;
+                    if (def.Kind == McKind.Sword)
+                    {
+                        // The sprite's blade runs bottom-left (handle) to top-right (tip): turn it upright,
+                        // lean the tip forward a little and put the handle in the hand like Minecraft.
+                        rot = new Vector3(25f, 0f, 45f);
+                        offset = new Vector3(0f, 0.2f, 0.05f);
+                    }
                     break;
                 }
             }
+            // Per-item tuning from balance.json: "hold": { "rotation": [x,y,z], "offset": [x,y,z], "scale": s }
+            var hold = def.Cfg["hold"];
+            if (hold != null)
+            {
+                rot = V3(hold["rotation"], rot);
+                offset = V3(hold["offset"], offset);
+                scale = Balance.F(hold, "scale", scale);
+            }
+            t.localPosition = anchor.basePos + offset;
+            t.localRotation = Quaternion.Euler(rot);
+            t.localScale = Vector3.one * scale;
             mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
         }
 
@@ -362,8 +426,6 @@ namespace BlockPeak.Items
                 var vis = kv.Value.transform.Find("BP_Visual");
                 if (vis != null)
                 {
-                    vis.localScale = Vector3.one;
-                    vis.localRotation = Quaternion.identity;
                     ApplyLooks(def, vis.GetComponent<MeshFilter>(), vis.GetComponent<MeshRenderer>(), vis);
                 }
             }
@@ -384,7 +446,9 @@ namespace BlockPeak.Items
             Put("BP_GLIDE", "Hold to glide while falling");
             Put("BP_TOOT", "Toot");
             Put("BP_RIDE", "Hold to ride");
-            Put("BP_POUR", "Pour");
+            Put("BP_DRINK", "Drink");
+            Put("BP_WEAR", "Wear");
+            Put("BP_FIREWORK", "Firework boost");
             Put("BP_ATTACK", "Attack");
             Put("BP_USE", "Use");
             Put("BP_TOTEM", "Saves you once");

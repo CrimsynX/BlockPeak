@@ -27,9 +27,9 @@ namespace BlockPeak.Hotbar
 
         private GameObject root;
         private RectTransform bar;
-        private RawImage background, selection, offhand, nameImage;
+        private RawImage background, selection, offhand, nameImage, chest, firework;
         private readonly List<SlotView> slots = new List<SlotView>();
-        private SlotView offhandSlot;
+        private SlotView offhandSlot, chestSlot;
         private int builtFor = -1, builtScale = -1, builtGen = -1;
         private GUIManager hiddenFor;
         private float nameShownAt = -10f;
@@ -95,6 +95,7 @@ namespace BlockPeak.Hotbar
             for (int p = 0; p < count; p++)
                 Fill(slots[p], watched.player.itemSlots[p], watched);
             FillBackpack(offhandSlot, watched);
+            FillChest(watched);
 
             selection.gameObject.SetActive(selectedPos >= 0 || backpackSelected);
             if (selectedPos >= 0) Place(selection.rectTransform, -1 + 20 * selectedPos, -1, 24, 23, scale);
@@ -186,6 +187,24 @@ namespace BlockPeak.Hotbar
                 v.BarFill.color = Color.HSVToRGB(Mathf.Clamp01(frac) / 3f, 1f, 1f);
             }
             else v.BarBack.enabled = v.BarFill.enabled = false;
+        }
+
+        /// <summary>Worn elytra: Minecraft's chest-slot look on the right of the hotbar, with durability and the firework.</summary>
+        private void FillChest(Character owner)
+        {
+            bool wearing = Elytra.Wearing(owner, out var slot);
+            chest.gameObject.SetActive(wearing);
+            chestSlot.Icon.transform.parent.gameObject.SetActive(wearing);
+            if (!wearing) return;
+            var def = ItemDefs.ByKey("elytra");
+            chestSlot.Icon.texture = ItemRegistry.IconFor(def);
+            chestSlot.Icon.enabled = true;
+            float frac = Mathf.Clamp01(Stacks.Durability(slot.data, 0.12f) / 0.12f);
+            chestSlot.BarBack.enabled = chestSlot.BarFill.enabled = true;
+            chestSlot.BarFill.rectTransform.sizeDelta = new Vector2(Mathf.Round(13 * frac) * builtScale, builtScale);
+            chestSlot.BarFill.color = Color.HSVToRGB(frac / 3f, 1f, 1f);
+            int left = Balance.I(def.Cfg, "fireworks", 1) - Stacks.FireworksUsed(slot.data);
+            firework.gameObject.SetActive(left > 0);
         }
 
         private void FillBackpack(SlotView v, Character owner)
@@ -284,6 +303,19 @@ namespace BlockPeak.Hotbar
             offhandSlot = MakeSlot(bar, -26, 3, scale);
 
             for (int i = 0; i < count; i++) slots.Add(MakeSlot(bar, 3 + 20 * i, 3, scale));
+
+            // Chest slot (worn elytra), right of the hotbar like Minecraft's right-hand off-hand slot.
+            chest = Img(bar, "chest", McAssets.Tex("gui/sprites/hud/hotbar_offhand_right.png"));
+            Place(chest.rectTransform, widthPx, -1, 29, 24, scale);
+            chestSlot = MakeSlot(bar, widthPx + 10, 3, scale);
+            firework = Img(chestSlot.Icon.transform.parent, "firework", McAssets.Tex("item/firework_rocket.png"));
+            var fr = firework.rectTransform;
+            fr.anchorMin = fr.anchorMax = Vector2.zero;
+            fr.pivot = Vector2.zero;
+            fr.anchoredPosition = new Vector2(9 * scale, 7 * scale);
+            fr.sizeDelta = new Vector2(8 * scale, 8 * scale);
+            chest.gameObject.SetActive(false);
+            chestSlot.Icon.transform.parent.gameObject.SetActive(false);
 
             var selTex = McAssets.Tex("gui/sprites/hud/hotbar_selection.png");
             selection = Img(bar, "selection", selTex);

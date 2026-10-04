@@ -16,6 +16,7 @@ namespace BlockPeak.Assets
         private static Material baseMat;
         private static string texProp;
         private static bool searched;
+        private static bool copiedPeakMaterial;
         private static readonly Dictionary<Texture, Material> cache = new Dictionary<Texture, Material>();
         private static readonly Dictionary<Texture, Material> glowCache = new Dictionary<Texture, Material>();
 
@@ -34,7 +35,15 @@ namespace BlockPeak.Assets
                 Health.Report("material", "ItemShaderOverride '" + over + "' was not found, using automatic choice.");
             }
 
-            // 1) A PEAK item material that has a main texture slot.
+            // 1) Unity's own URP shaders: clean, no PEAK overlay/noise textures. (PEAK runs on URP.)
+            foreach (var n in new[] { "Universal Render Pipeline/Simple Lit", "Universal Render Pipeline/Lit", "Universal Render Pipeline/Unlit" })
+            {
+                var sh = Shader.Find(n);
+                if (sh != null && sh.isSupported) { Use(new Material(sh)); return; }
+            }
+
+            // 2) A copy of a PEAK item material with every extra texture removed (PEAK's shaders add a
+            //    painterly overlay texture; on pixel art that shows up as a weird pattern).
             try
             {
                 var db = Game.ItemDb;
@@ -50,7 +59,8 @@ namespace BlockPeak.Assets
                             if (prop == null) continue;
                             baseMat = new Material(m);
                             texProp = prop;
-                            Plugin.Log.LogInfo($"Minecraft textures use PEAK material '{m.name}' ({m.shader.name}) from item {item.name}.");
+                            copiedPeakMaterial = true;
+                            Plugin.Log.LogInfo($"Minecraft textures use PEAK material '{m.name}' ({m.shader.name}) from item {item.name}. Texture slots: {string.Join(", ", m.GetTexturePropertyNames())}");
                             return;
                         }
                     }
@@ -58,8 +68,7 @@ namespace BlockPeak.Assets
             }
             catch (System.Exception e) { Health.Report("material", e); }
 
-            // 2) Common shaders.
-            foreach (var n in new[] { "Universal Render Pipeline/Lit", "Universal Render Pipeline/Simple Lit", "Standard", "Universal Render Pipeline/Unlit", "Unlit/Texture", "Sprites/Default" })
+            foreach (var n in new[] { "Standard", "Unlit/Texture", "Sprites/Default" })
             {
                 var sh = Shader.Find(n);
                 if (sh != null) { Use(new Material(sh)); return; }
@@ -81,6 +90,13 @@ namespace BlockPeak.Assets
             m = baseMat != null ? new Material(baseMat) : new Material(Shader.Find("Sprites/Default") ?? Shader.Find("Hidden/InternalErrorShader"));
             m.name = "BlockPeak_" + (tex != null ? tex.name : "none");
             foreach (var p in TexProps) if (m.HasProperty(p)) m.SetTexture(p, null);
+            if (copiedPeakMaterial)
+            {
+                // Remove every other texture the PEAK shader uses (overlays, noise, masks) and its keywords.
+                foreach (var p in m.GetTexturePropertyNames())
+                    if (p != texProp) m.SetTexture(p, null);
+                foreach (var k in m.shaderKeywords) m.DisableKeyword(k);
+            }
             if (texProp != null && m.HasProperty(texProp)) m.SetTexture(texProp, tex);
             m.mainTexture = tex;
             foreach (var p in ColorProps) if (m.HasProperty(p)) m.SetColor(p, Color.white);

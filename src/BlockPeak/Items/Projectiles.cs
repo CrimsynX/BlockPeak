@@ -129,7 +129,7 @@ namespace BlockPeak.Items
                     McMobs.HostHurtPlayer(victim, s.MobType, true);
                     Sfx.At("random/bowhit", hitPoint, 0.8f);
                 }
-                if (!done && s.Authority && s.Kind == ProjectileKind.WindCharge && McMobs.AnyMobNear(next, 0.9f))
+                if (!done && s.Authority && s.Kind == ProjectileKind.WindCharge && MobDirector.AnyNear(next, 0.9f))
                     done = true;
                 if (!done && s.Authority && s.Kind == ProjectileKind.Pearl && s.Age > 0.15f && OtherCharacterNear(next, s.Owner))
                     done = true;
@@ -214,7 +214,7 @@ namespace BlockPeak.Items
         {
             Sfx.At("entity/wind_charge/wind_burst", at, 1f);
             Fx.Burst(at, new[] { new Color(0.85f, 0.9f, 1f), new Color(0.7f, 0.75f, 0.95f) }, 24, 5f, 0.6f, false);
-            if (PhotonNetwork.IsMasterClient || !PhotonNetwork.InRoom) McMobs.HostPush(at, radius * 1.4f, launch);
+            if (PhotonNetwork.IsMasterClient || !PhotonNetwork.InRoom) MobDirector.HostPush(at, radius * 1.4f, launch);
             var c = Game.LocalChar;
             if (c == null || c.data.dead) return;
             float reach = radius * 1.5f;

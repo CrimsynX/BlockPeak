@@ -14,10 +14,16 @@ Assets/              AssetList (config/minecraft-assets.txt), Extractor (copies 
 Net/                 Channel (Photon RaiseEvent code 173), Handshake (version check via player properties)
 Hotbar/              HotbarPatches (extra slots, switching, stacking, weight), HotbarHud (Minecraft HUD)
 Items/               ItemDefs, ItemRegistry (builds the items), McItem, Behaviours (what each item does),
-                     Effects (food/totem), Loot, Projectiles, Stacks
-Building/            BlockWorld (host-owned placed blocks), PlacedBlock (looks, breaking, TNT), Explosions
-Mobs/                McMobs (spawning, AI, combat, sync), MobModels (Minecraft box models), MobView (animation)
-UI/                  Banner (Airport text, toasts), Fx (particles, markers)
+                     Effects (totem, horn, jump boost), PeakEffects (PEAK afflictions), Elytra, Loot,
+                     Projectiles, Stacks
+Building/            BlockWorld (host-owned placed blocks), PlacedBlock (looks, breaking, TNT), Explosions,
+                     PlacementPreview (outline), LadderRopes (hidden PEAK ropes behind ladders), Boats
+Mobs/                BodyMobs + BodyMob (night mobs and the warden on PEAK zombie bodies), McMobs (the
+                     lightweight zombie horde), MobModels (Minecraft box models), MobDirector (routes to both)
+Modes/               CustomOptions (check boxes in the Custom run window), GameModes (chases, starter kit),
+                     Rains (anvil/TNT rain)
+UI/                  Banner, Fx (particles, Minecraft explosion puffs), ChatBox + Commands (debug chat),
+                     TestMenu (F6)
 ```
 
 ## Hotbar
@@ -48,21 +54,56 @@ Picking up a Minecraft item tops up an existing stack first (`Player.AddItem` pr
 
 `Spawner.GetObjectsToSpawn` (host only) swaps a share of each luggage's items for Minecraft items rolled from the
 weights in balance.json, with per-run caps. The stack size is rolled when the item first appears on the host.
+With the "Only Minecraft items" custom-run option every spawner's items are swapped, except respawn chests,
+spawners within 40 m of the start (`SpawnPoint.allSpawnPoints`) and items whose names are on the keep list.
 
 ## Blocks
 
 Blocks live on a world grid. A player asks the host to place/break (`Op.BlockPlaceReq`), the host checks the limit
 and tells everyone (`Op.BlockPlaced`). A player who joins late gets a snapshot. Blocks use PEAK's `Map` layer so
-scouts stand on and climb them; ladders add PEAK's `ClimbModifierSurface`. Breaking uses PEAK's hold-to-interact
-system (`IInteractibleConstant`). TNT reuses PEAK's dynamite explosion effect without its damage; damage and
-knockback are applied by each player's own game.
+scouts stand on and climb them. Each vertical run of ladders gets a real PEAK rope (spawned by the host through
+the RopeShooter's anchor prefab, `RpcTarget.AllBuffered`) whose renderers are hidden, so ladders climb exactly
+like PEAK's ropes. Breaking uses PEAK's hold-to-interact system (`IInteractibleConstant`). Explosions use
+Minecraft's own explosion sprites (a handful of billboards, no PEAK effect prefab) and a strong knockback; damage
+and knockback are applied by each player's own game. `PlacementPreview` draws a wireframe outline of where the
+held block would go (red when it can't).
 
 ## Mobs
 
-Mobs are not Photon objects. The host runs spawning and AI and sends 10 compact updates per second
-(`Op.MobStates`); other players interpolate. Hits on players go to the victim's game (`Op.HurtPlayer`) which
-applies PEAK statuses itself (PEAK only lets the owner change its statuses). Players' hits on mobs go to the host
-(`Op.MobHitReq`).
+Night mobs and the warden are PEAK's own mushroom-zombie body (`MushroomZombie`, a full bot `Character`),
+spawned by the host with `PhotonNetwork.InstantiateRoomObject` and tagged through `InstantiationData`. That gives
+them PEAK's physics, collisions, climbing and network sync. BlockPeak hides the zombie's renderers, hangs the
+Minecraft box model on its bones (so PEAK's walk/run/climb/fall animations move the Minecraft limbs), and replaces
+its brain (`MushroomZombie.Update` prefix) with each mob's Minecraft behaviour: chasing, climbing, skeletons keeping
+their distance and shooting, creeper fuses, slime hops, dawn rules, the warden's smell and sonic boom.
+Minecraft hearts float over a mob for a few seconds after it is hurt.
+
+The Zombie Chase horde is too big for full characters, so it is a separate light system (`McMobs`): one ground
+raycast batch per frame (`RaycastCommand`), staggered thinking, a spatial grid, 10 bytes per zombie 8 times a
+second, and GPU-instanced drawing with a few pre-built pose meshes.
+
+Hits on players go to the victim's game (`Op.HurtPlayer`), which applies PEAK statuses itself (PEAK only lets the
+owner change its statuses). Players' hits on mobs go to the host.
+
+## Elytra, boats, debug chat
+
+The elytra is worn while its hotbar slot is selected: an `EquipSlot` prefix keeps it out of the hands, `WingsView`
+draws Minecraft's wings on the torso, and gliding sets the ragdoll's velocities with Minecraft's fall-flying maths.
+Durability and the one firework are stored in the item's data and synced to the host.
+
+A boat is placed in the world (host-owned list). The rider drives it and streams its position; while riding, the
+movement keys steer (`CharacterInput.Sample` postfix) and fall damage is capped to zero.
+
+The debug chat only exists when `TestMode` was on when PEAK started. Commands that change the world (`/time`,
+`/summon`, `/kill`) run on the host (`Op.DebugCmd`); the others are local.
+
+## Custom-run modes
+
+`CustomOptionsWindow.Initialize` (postfix) clones one of PEAK's own option rows for each BlockPeak option (an IMGUI
+list is the fallback if that fails). Choices are saved in PlayerPrefs. The host's `GameModes` waits for the first
+scout to walk 2.5 m from the start, broadcasts a countdown, then spawns the warden or the horde. `Rains` has the
+host pick drop points with open sky above the scouts; every game simulates its own copies with Unity physics and
+only the host's copies break blocks or hurt mobs.
 
 ## Networking summary
 
@@ -89,4 +130,8 @@ mod uses generated stand-ins.
 | `CharacterAfflictions.UpdateWeight` (postfix) | stacks weigh by count |
 | `CharacterAfflictions.AddStatus` (prefix, only while an effect is active) | half damage / heat immunity |
 | `Character.HandleLife` (prefix, only when about to pass out) | totem of undying |
-| `Spawner.GetObjectsToSpawn` (postfix, luggage, host) | Minecraft loot |
+| `Spawner.GetObjectsToSpawn` (postfix, host) | Minecraft loot, "Only Minecraft items" |
+| `CharacterItems.EquipSlot` (prefix, elytra slot only) | wear the elytra instead of holding it |
+| `CharacterInput.Sample` (prefix/postfix) | block input while the chat/menu is open, steer the boat |
+| `MushroomZombie.Awake/Start/Update/RPC_PlaySFX/ReadyToDisable/OnBitCharacter` (BlockPeak mobs only) | Minecraft mobs on PEAK zombie bodies |
+| `CustomOptionsWindow.Initialize` (postfix) | BlockPeak's custom-run check boxes |

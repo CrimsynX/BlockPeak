@@ -1,6 +1,6 @@
 {
   "_readme": "BlockPeak balance file. Edit numbers, save, restart PEAK. In multiplayer the HOST's file is used for everyone. Status amounts use PEAK units: 1.0 = the whole stamina bar, 0.025 = one tick. Weight units: 1 = one PEAK weight tick (2.5 on the bar).",
-  "version": 1,
+  "version": 2,
   "loot": {
     "minecraftShare": 0.15,
     "ancientShare": 0.2,
@@ -44,36 +44,34 @@
       "torch": 9,
       "ladder": 8,
       "steak": 8,
-      "redstone_torch": 6,
       "tnt": 6,
       "goat_horn": 5,
       "golden_apple": 5,
       "stone_sword": 5,
       "wind_charge": 4,
-      "water_bucket": 4,
       "boat": 3,
       "ender_pearl": 3,
       "totem_of_undying": 1.5,
       "elytra": 1.5,
-      "enchanted_golden_apple": 1
+      "enchanted_golden_apple": 1,
+      "potion_swiftness": 4,
+      "potion_leaping": 4
     },
     "multipliers": {
       "LuggageTundra": {
         "torch": 2,
-        "boat": 2
+        "boat": 2,
+        "potion_leaping": 1.5
       },
       "LuggageMesa": {
         "tnt": 2,
-        "water_bucket": 2
+        "potion_swiftness": 1.5
       },
       "LuggageBeach": {
         "boat": 2
       },
       "LuggageRoots": {
         "boat": 2
-      },
-      "LuggageCaldera": {
-        "water_bucket": 0
       }
     },
     "rareItems": [
@@ -90,7 +88,18 @@
         12
       ],
       "stack": 24,
-      "weightPer": 3
+      "weightPer": 7.5,
+      "blockWeights": {
+        "_readme": "Blocks per weight unit (one 2.5% tick of the bar). Bigger = lighter.",
+        "moss_block": 10,
+        "oak_planks": 10,
+        "sand": 7.5,
+        "terracotta": 7.5,
+        "packed_ice": 7.5,
+        "stone_bricks": 6,
+        "basalt": 6,
+        "deepslate": 6
+      }
     },
     "ladder": {
       "find": [
@@ -108,14 +117,6 @@
       "stack": 16,
       "weightPer": 4
     },
-    "redstone_torch": {
-      "find": [
-        2,
-        4
-      ],
-      "stack": 16,
-      "weightPer": 4
-    },
     "tnt": {
       "find": [
         1,
@@ -126,7 +127,8 @@
       "weightEach": 2,
       "fuseSeconds": 4.0,
       "radius": 3.0,
-      "injury": 0.4
+      "injury": 0.4,
+      "knockback": 26.0
     },
     "ender_pearl": {
       "find": [
@@ -148,7 +150,9 @@
       "glideSeconds": 52,
       "crashInjuryMin": 0.1,
       "crashInjuryMax": 0.4,
-      "startDurability": 0.12
+      "startDurability": 0.12,
+      "fireworks": 1,
+      "fireworkSeconds": 1.5
     },
     "boat": {
       "find": [
@@ -158,17 +162,8 @@
       "stack": 1,
       "weightEach": 4,
       "waterSpeed": 9.0,
-      "snowSpeed": 7.0
-    },
-    "water_bucket": {
-      "find": [
-        1,
-        1
-      ],
-      "stack": 1,
-      "weightEach": 3,
-      "weightEmpty": 1,
-      "fallSaveWindow": 1.5
+      "snowSpeed": 7.0,
+      "landSpeed": 2.0
     },
     "wind_charge": {
       "find": [
@@ -208,8 +203,7 @@
       ],
       "stack": 4,
       "weightPer": 1,
-      "hunger": 0.15,
-      "heal": 0.2,
+      "heal": 0.3,
       "bonusStamina": 0.25,
       "eatSeconds": 1.6
     },
@@ -220,12 +214,10 @@
       ],
       "stack": 2,
       "weightPer": 1,
-      "hunger": 0.2,
-      "heal": 0.5,
-      "bonusStamina": 0.5,
-      "heatImmuneSeconds": 180,
-      "halfInjurySeconds": 180,
-      "eatSeconds": 1.6
+      "heal": 2.0,
+      "bonusStamina": 1.0,
+      "eatSeconds": 1.6,
+      "milkInvincibilityMultiplier": 2.5
     },
     "cookie": {
       "find": [
@@ -269,6 +261,29 @@
       "poisonChance": 0.8,
       "poison": 0.1,
       "eatSeconds": 1.6
+    },
+    "potion_swiftness": {
+      "find": [
+        1,
+        1
+      ],
+      "stack": 1,
+      "weightEach": 1,
+      "seconds": 25,
+      "moveSpeed": 0.35,
+      "climbSpeed": 0.25,
+      "eatSeconds": 1.2
+    },
+    "potion_leaping": {
+      "find": [
+        1,
+        1
+      ],
+      "stack": 1,
+      "weightEach": 1,
+      "seconds": 25,
+      "jumpMultiplier": 1.6,
+      "eatSeconds": 1.2
     }
   },
   "building": {
@@ -325,95 +340,179 @@
     },
     "types": {
       "zombie": {
-        "health": 10,
-        "speed": 2.4,
+        "health": 20,
         "status": "Injury",
         "amount": 0.075,
-        "burnsAtDawn": true
+        "burnsAtDawn": true,
+        "walkSpeed": 0.85,
+        "sprints": true
       },
       "husk": {
-        "health": 10,
-        "speed": 2.4,
+        "health": 20,
         "status": "Injury",
         "amount": 0.05,
         "extraStatus": "Hunger",
         "extraAmount": 0.1,
-        "burnsAtDawn": false
+        "burnsAtDawn": false,
+        "walkSpeed": 0.85,
+        "sprints": true
       },
       "drowned": {
-        "health": 10,
-        "speed": 2.2,
+        "health": 20,
         "status": "Injury",
         "amount": 0.075,
-        "burnsAtDawn": true
+        "burnsAtDawn": true,
+        "walkSpeed": 0.8,
+        "sprints": true
       },
       "skeleton": {
-        "health": 8,
-        "speed": 2.6,
+        "health": 16,
         "status": "Injury",
         "amount": 0.05,
         "ranged": true,
-        "burnsAtDawn": true
+        "burnsAtDawn": true,
+        "walkSpeed": 0.9,
+        "sprints": false
       },
       "stray": {
-        "health": 8,
-        "speed": 2.6,
+        "health": 16,
         "status": "Injury",
         "amount": 0.05,
         "extraStatus": "Cold",
         "extraAmount": 0.05,
         "ranged": true,
-        "burnsAtDawn": true
+        "burnsAtDawn": true,
+        "walkSpeed": 0.9,
+        "sprints": false
       },
       "bogged": {
-        "health": 8,
-        "speed": 2.4,
+        "health": 16,
         "status": "Injury",
         "amount": 0.05,
         "extraStatus": "Poison",
         "extraAmount": 0.05,
         "ranged": true,
-        "burnsAtDawn": true
+        "burnsAtDawn": true,
+        "walkSpeed": 0.85,
+        "sprints": false
       },
       "spider": {
-        "health": 8,
-        "speed": 3.0,
+        "health": 16,
         "status": "Injury",
         "amount": 0.05,
         "climbs": true,
-        "neutralAtDawn": true
+        "neutralAtDawn": true,
+        "walkSpeed": 1.1,
+        "sprints": true
       },
       "creeper": {
-        "health": 8,
-        "speed": 2.2,
+        "health": 16,
         "status": "Injury",
         "amount": 0.2,
         "explodes": true,
-        "rare": 0.25
+        "rare": 0.25,
+        "walkSpeed": 0.8,
+        "sprints": false
       },
       "slime": {
-        "health": 4,
-        "speed": 2.0,
+        "health": 8,
         "status": "Injury",
         "amount": 0.025,
         "knockback": 6.0,
-        "vanishAtDawn": true
+        "vanishAtDawn": true,
+        "walkSpeed": 0.7,
+        "sprints": false
       },
       "magma_cube": {
-        "health": 4,
-        "speed": 2.0,
+        "health": 8,
         "status": "Injury",
         "amount": 0.05,
         "extraStatus": "Hot",
         "extraAmount": 0.05,
-        "vanishAtDawn": true
+        "vanishAtDawn": true,
+        "walkSpeed": 0.75,
+        "sprints": false
+      },
+      "warden": {
+        "health": 200,
+        "walkSpeed": 1.15,
+        "sprints": false,
+        "status": "Injury",
+        "amount": 0.35,
+        "knockback": 9.0,
+        "climbs": true
+      },
+      "warden_sonic": {
+        "status": "Injury",
+        "amount": 0.25,
+        "knockback": 6.0
+      },
+      "horde_zombie": {
+        "Injury": 0.05,
+        "knockback": 3.5
       }
     },
-    "scale": 0.9
+    "scale": 0.9,
+    "heartsSeconds": 4.0
   },
   "templates": {
     "_readme": "Advanced: the PEAK items Minecraft items are cloned from (for hand positions). Empty = automatic. Names are listed in BepInEx/config/BlockPeak/peak-items.txt.",
     "generic": "",
     "food": ""
+  },
+  "modes": {
+    "_comment": "Custom-run modes (check boxes in PEAK's Custom run window). Only the host's settings count.",
+    "debugIgnoresCustomRun": false,
+    "countdownSeconds": 10,
+    "moveToStart": 2.5,
+    "zombieChase": {
+      "count": 120,
+      "zombieHealth": 10,
+      "zombieSpeed": 3.2,
+      "spawnMinDistance": 30,
+      "spawnMaxDistance": 70,
+      "drawDistance": 150
+    },
+    "starterKit": {
+      "blocks": 16,
+      "torch": 4,
+      "cookie": 4,
+      "ender_pearl": 1
+    },
+    "minecraftItemsOnly": {
+      "startAreaRadius": 40,
+      "keep": [
+        "BingBong",
+        "Passport",
+        "Guidebook",
+        "Gem",
+        "Crystal",
+        "Scroll",
+        "Flare"
+      ]
+    },
+    "rain": {
+      "firstDelay": 45,
+      "everyMin": 60,
+      "everyMax": 180,
+      "seconds": 12,
+      "radius": 12,
+      "height": 22,
+      "maxAlive": 60,
+      "anvilsPerSecond": 1.0,
+      "anvilMass": 40,
+      "anvilInjury": 0.25,
+      "anvilFallSeconds": 2,
+      "minHitSpeed": 5,
+      "anvilLifeSeconds": 27,
+      "tntPerSecond": 0.7,
+      "tntMass": 8,
+      "tntFuseMin": 0.5,
+      "tntFuseMax": 2.0,
+      "tntMaxSeconds": 8,
+      "tntRadius": 2.5,
+      "tntInjury": 0.25,
+      "tntKnockback": 16
+    }
   }
 }

@@ -2,10 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using BlockPeak.Core;
 using Newtonsoft.Json.Linq;
+using UnityEngine;
 
 namespace BlockPeak.Items
 {
-    public enum McKind { Block, Torch, RedstoneTorch, Ladder, Tnt, Food, EnderPearl, Elytra, Boat, WaterBucket, WindCharge, GoatHorn, Totem, Sword }
+    public enum McKind { Block, Torch, Ladder, Tnt, Food, EnderPearl, Elytra, Boat, WindCharge, GoatHorn, Totem, Sword, Potion }
 
     /// <summary>One Minecraft item that can turn up in PEAK.</summary>
     public class McItemDef
@@ -17,24 +18,32 @@ namespace BlockPeak.Items
         public string Side, Top, Bottom; // block faces
         public string CfgKey;         // section under "items" in balance.json
         public string Prompt = "BP_USE";
+        public string Effect;         // potions: "speed" or "jump"
+        public Color Tint = Color.white;
         public ushort Id;
         public int Index;
 
         public JToken Cfg => Balance.ItemCfg(CfgKey ?? Key);
         public int Stack => System.Math.Max(1, Balance.I(Cfg, "stack", 1));
         public (int min, int max) Find => Balance.Range(Cfg, "find", 1, 1);
-        public bool IsPlaceable => Kind == McKind.Block || Kind == McKind.Torch || Kind == McKind.RedstoneTorch || Kind == McKind.Ladder || Kind == McKind.Tnt;
+        public bool IsPlaceable => Kind == McKind.Block || Kind == McKind.Torch || Kind == McKind.Ladder || Kind == McKind.Tnt;
         public string PrefabName => "BlockPeak_" + Key;
         public string LocName => "BP_" + Key.ToUpperInvariant();
 
-        /// <summary>Weight units for a stack of n (PEAK counts 1 unit = one weight tick).</summary>
-        public int WeightFor(int n)
+        /// <summary>Weight units for a stack of n (PEAK counts 1 unit = one 2.5% tick on the bar). Fractions are fine.</summary>
+        public float WeightFor(int n)
         {
             var c = Cfg;
-            int each = Balance.I(c, "weightEach", 0);
-            int per = Balance.I(c, "weightPer", 0);
+            if (Kind == McKind.Block)
+            {
+                // Light / normal / heavy blocks: "blockWeights": { "<key>": blocks per weight unit }
+                float perBlock = Balance.F(Balance.ItemCfg("blocks")["blockWeights"], Key, Balance.F(c, "weightPer", 7.5f));
+                return perBlock > 0 ? n / perBlock : 0f;
+            }
+            float each = Balance.F(c, "weightEach", 0);
+            float per = Balance.F(c, "weightPer", 0);
             if (each > 0) return each * n;
-            if (per > 0) return (n + per - 1) / per;
+            if (per > 0) return Mathf.Ceil(n / per);
             return 1;
         }
     }
@@ -59,7 +68,7 @@ namespace BlockPeak.Items
             Block("deepslate", "Deepslate", "block/deepslate.png");
             Block("stone_bricks", "Stone Bricks", "block/stone_bricks.png");
             Add(new McItemDef { Key = "torch", Name = "Torch", Kind = McKind.Torch, Texture = "block/torch.png", Prompt = "BP_PLACE" });
-            Add(new McItemDef { Key = "redstone_torch", Name = "Redstone Torch", Kind = McKind.RedstoneTorch, Texture = "block/redstone_torch.png", Prompt = "BP_PLACE" });
+            Skip(); // 9 was the redstone torch (removed in 0.2.0; ids of later items stay the same)
             Add(new McItemDef { Key = "ladder", Name = "Ladder", Kind = McKind.Ladder, Texture = "block/ladder.png", Prompt = "BP_PLACE" });
             Add(new McItemDef { Key = "tnt", Name = "TNT", Kind = McKind.Tnt, Side = "block/tnt_side.png", Top = "block/tnt_top.png", Bottom = "block/tnt_bottom.png", Prompt = "BP_PLACE" });
             Add(new McItemDef { Key = "ender_pearl", Name = "Ender Pearl", Kind = McKind.EnderPearl, Texture = "item/ender_pearl.png", Prompt = "BP_THROW" });
@@ -71,11 +80,17 @@ namespace BlockPeak.Items
             Food("cookie", "Cookie", "item/cookie.png");
             Food("steak", "Steak", "item/cooked_beef.png");
             Add(new McItemDef { Key = "boat", Name = "Oak Boat", Kind = McKind.Boat, Texture = "item/oak_boat.png", Prompt = "BP_RIDE" });
-            Add(new McItemDef { Key = "water_bucket", Name = "Water Bucket", Kind = McKind.WaterBucket, Texture = "item/water_bucket.png", Prompt = "BP_POUR" });
+            Skip(); // 21 was the water bucket (removed in 0.2.0)
             Add(new McItemDef { Key = "wind_charge", Name = "Wind Charge", Kind = McKind.WindCharge, Texture = "item/wind_charge.png", Prompt = "BP_THROW" });
             Add(new McItemDef { Key = "stone_sword", Name = "Stone Sword", Kind = McKind.Sword, Texture = "item/stone_sword.png", Prompt = "BP_ATTACK" });
             Food("rotten_flesh", "Rotten Flesh", "item/rotten_flesh.png");
+            Add(new McItemDef { Key = "potion_swiftness", Name = "Potion of Swiftness", Kind = McKind.Potion, Texture = "item/potion.png", Effect = "speed", Tint = new Color(0.2f, 0.92f, 1f), Prompt = "BP_DRINK" });
+            Add(new McItemDef { Key = "potion_leaping", Name = "Potion of Leaping", Kind = McKind.Potion, Texture = "item/potion.png", Effect = "jump", Tint = new Color(0.99f, 1f, 0.52f), Prompt = "BP_DRINK" });
         }
+
+        private static int nextIndex;
+
+        private static void Skip() => nextIndex++;
 
         private static void Block(string key, string name, string side, string top = null)
         {
@@ -89,7 +104,7 @@ namespace BlockPeak.Items
 
         private static void Add(McItemDef d)
         {
-            d.Index = All.Count;
+            d.Index = nextIndex++;
             d.Id = (ushort)(FirstId + d.Index);
             All.Add(d);
             byId[d.Id] = d;

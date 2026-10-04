@@ -16,7 +16,11 @@ namespace BlockPeak.Mobs
         public readonly List<Renderer> Renderers = new List<Renderer>();
         public float Height = 2f;
         public float Width = 0.6f;
-        public string Kind; // humanoid, skeleton, spider, creeper, slime, magma
+        public string Kind; // humanoid, skeleton, warden, spider, creeper, slime, magma
+        public Transform Inner;
+        // Proportions in Minecraft pixels, used to hang the parts on PEAK's skeleton.
+        public float LegPx = 12, BodyPx = 12, ShoulderX = 5, ShoulderDrop = 2, HipX = 1.9f;
+        public bool FollowsBones => Kind == "humanoid" || Kind == "skeleton" || Kind == "warden";
     }
 
     /// <summary>
@@ -39,6 +43,7 @@ namespace BlockPeak.Mobs
                 case "creeper": return "entity/creeper/creeper.png";
                 case "slime": return "entity/slime/slime.png";
                 case "magma_cube": return "entity/slime/magmacube.png";
+                case "warden": return "entity/warden/warden.png";
                 default: return "entity/zombie/zombie.png";
             }
         }
@@ -53,6 +58,7 @@ namespace BlockPeak.Mobs
             var inner = new GameObject("model").transform;
             inner.SetParent(m.Root.transform, false);
             inner.localScale = Vector3.one * scale;
+            m.Inner = inner;
 
             switch (type)
             {
@@ -61,6 +67,13 @@ namespace BlockPeak.Mobs
                 case "bogged":
                     m.Kind = "skeleton";
                     Humanoid(m, inner, mat, 64, 32, true);
+                    m.HipX = 2f;
+                    break;
+                case "warden":
+                    m.Kind = "warden";
+                    Warden(m, inner, mat);
+                    m.LegPx = 13; m.BodyPx = 21; m.ShoulderX = 13; m.ShoulderDrop = 0; m.HipX = 5.9f;
+                    m.Height = 3.1f * scale; m.Width = 1.1f * scale;
                     break;
                 case "spider":
                     m.Kind = "spider";
@@ -127,6 +140,18 @@ namespace BlockPeak.Mobs
                 m.LegR = Part(m, root, "legR", Pivot(-1.9f, 12, 0), mat, b => b.McBox(-2, 0, -2, 4, 12, 4, 0, 16, tw, th));
                 m.LegL = Part(m, root, "legL", Pivot(1.9f, 12, 0), mat, b => b.McBox(-2, 0, -2, 4, 12, 4, 16, 48, tw, th));
             }
+        }
+
+        /// <summary>Minecraft's WardenModel (128x128 texture); the flat tendrils and ribcage layers are left out.</summary>
+        private static void Warden(MobModel m, Transform root, Material mat)
+        {
+            const float tw = 128, th = 128;
+            m.Body = Part(m, root, "body", Pivot(0, -10, 0), mat, b => b.McBox(-9, 0, -4, 18, 21, 11, 0, 0, tw, th));
+            m.Head = Part(m, root, "head", Pivot(0, -10, 0), mat, b => b.McBox(-8, -16, -5, 16, 16, 10, 0, 32, tw, th));
+            m.ArmR = Part(m, root, "armR", Pivot(-13, -10, 1), mat, b => b.McBox(-4, 0, -4, 8, 28, 8, 44, 50, tw, th));
+            m.ArmL = Part(m, root, "armL", Pivot(13, -10, 1), mat, b => b.McBox(-4, 0, -4, 8, 28, 8, 0, 58, tw, th));
+            m.LegR = Part(m, root, "legR", Pivot(-5.9f, 11, 0), mat, b => b.McBox(-3.1f, 0, -3, 6, 13, 6, 76, 48, tw, th));
+            m.LegL = Part(m, root, "legL", Pivot(5.9f, 11, 0), mat, b => b.McBox(-2.9f, 0, -3, 6, 13, 6, 76, 76, tw, th));
         }
 
         private static void Spider(MobModel m, Transform root, Material mat)

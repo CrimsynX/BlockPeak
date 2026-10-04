@@ -20,6 +20,35 @@ namespace BlockPeak.Items
         public static void Reset()
         {
             HalfInjuryUntil = HeatImmuneUntil = 0f;
+            EndJumpBoost();
+        }
+
+        // ---- jump boost (potion of leaping): scales PEAK's own jump impulse for a while
+        private static float jumpUntil;
+        private static float savedImpulse = -1f;
+        private static CharacterMovement boosted;
+
+        public static float JumpBoostLeft => Mathf.Max(0f, jumpUntil - Time.time);
+
+        public static void StartJumpBoost(Character c, float multiplier, float seconds)
+        {
+            var mv = c.refs.movement;
+            if (boosted != mv) { EndJumpBoost(); boosted = mv; savedImpulse = mv.jumpImpulse; }
+            mv.jumpImpulse = savedImpulse * multiplier;
+            jumpUntil = Time.time + seconds;
+        }
+
+        public static void Tick()
+        {
+            if (boosted != null && Time.time > jumpUntil) EndJumpBoost();
+        }
+
+        private static void EndJumpBoost()
+        {
+            if (boosted != null && savedImpulse > 0f) boosted.jumpImpulse = savedImpulse;
+            boosted = null;
+            savedImpulse = -1f;
+            jumpUntil = 0f;
         }
 
         public static void RegisterNet()
@@ -45,7 +74,7 @@ namespace BlockPeak.Items
                 var def = ItemDefs.ByKey("goat_horn");
                 Fx.Marker(actor, ItemRegistry.IconFor(def), Balance.F(def.Cfg, "markerSeconds", 10f));
                 if (PhotonNetwork.IsMasterClient || !PhotonNetwork.InRoom)
-                    Mobs.McMobs.Scare(pos, 10f, Balance.F(def.Cfg, "scareSeconds", 10f));
+                    Mobs.MobDirector.Scare(pos, 10f, Balance.F(def.Cfg, "scareSeconds", 10f));
             });
         }
 
@@ -106,6 +135,7 @@ namespace BlockPeak.Items
         private static bool Prefix(CharacterAfflictions __instance, CharacterAfflictions.STATUSTYPE statusType, ref float amount, ref bool __result)
         {
             if (__instance.character == null || !__instance.character.IsLocal) return true;
+            if (UI.Creative.BlocksStatus(statusType)) { __result = false; return false; }
             if (statusType == CharacterAfflictions.STATUSTYPE.Injury && Time.time < LocalEffects.HalfInjuryUntil) amount *= 0.5f;
             if (statusType == CharacterAfflictions.STATUSTYPE.Hot && Time.time < LocalEffects.HeatImmuneUntil)
             {

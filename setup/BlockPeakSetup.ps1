@@ -470,8 +470,8 @@ function Set-TestMode([bool]$on) {
         $text = $text.TrimEnd() + "`r`n`r`n[Testing]`r`n`r`nTestMode = $value`r`n"
     }
     [IO.File]::WriteAllText($cfg, $text)
-    if ($on) { Write-Log 'Test mode ON. In PEAK press F6 (Airport or mountain) for the item / mob menu. The host needs it on too.' 'ok' }
-    else { Write-Log 'Test mode OFF.' 'ok' }
+    if ($on) { Write-Log 'Debug mode ON. Start (or restart) PEAK now: F6 opens the item / mob menu and / opens the command chat (type /help). The host needs it on too.' 'ok' }
+    else { Write-Log 'Debug mode OFF. Restart PEAK if it is running.' 'ok' }
 }
 
 function Start-Peak {
@@ -541,8 +541,8 @@ function Show-Gui {
         }, 0, 2, $false),
         @('Open settings folder', { $g = Find-Peak; $d = Join-Path $g 'BepInEx/config'; if (Test-Path $d) { Start-Process explorer.exe $d } else { throw 'Run Install first.' } }, 1, 2, $false),
         @('Open game log', { $g = Find-Peak; $f = Join-Path $g 'BepInEx/LogOutput.log'; if (Test-Path $f) { Start-Process notepad.exe $f } else { throw 'No log yet - start PEAK once.' } }, 2, 2, $false),
-        @('Test mode ON (F6 menu)', { Set-TestMode $true }, 0, 3, $false),
-        @('Test mode OFF', { Set-TestMode $false }, 1, 3, $false)
+        @('Debug mode ON (before PEAK)', { Set-TestMode $true }, 0, 3, $false),
+        @('Debug mode OFF', { Set-TestMode $false }, 1, 3, $false)
     )
     foreach ($b in $buttons) {
         $btn = New-Object System.Windows.Forms.Button
