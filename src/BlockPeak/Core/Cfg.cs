@@ -34,6 +34,8 @@ namespace BlockPeak.Core
         public static ConfigEntry<float> McSoundVolume;
         public static ConfigEntry<string> ItemShaderOverride;
         public static ConfigEntry<bool> TestMode;
+        public static ConfigEntry<bool> McParticles, McClouds;
+        public static ConfigEntry<float> CloudHeight;
 
         /// <summary>Test/debug mode as it was when PEAK started (changing the .cfg mid-game does not unlock it).</summary>
         public static bool Debug { get; private set; }
@@ -54,7 +56,7 @@ namespace BlockPeak.Core
 
             QuickPlaceKey = c.Bind("Building", "QuickPlaceKey", KeyCode.F, "While climbing: place a block from your hotbar into the wall under your feet.");
             FireworkKey = c.Bind("Building", "FireworkKey", KeyCode.R, "While gliding with the elytra: use its one firework boost (the Use button works too).");
-            PlacedBlockLimit = c.Bind("Building", "PlacedBlockLimit", 200, "Most blocks that can be placed in one run (host decides).");
+            PlacedBlockLimit = c.Bind("Building", "MaxPlacedBlocks", 1000, "Most blocks that can be placed in one run (host decides). (Replaces the old PlacedBlockLimit setting.)");
 
             MobsEnabled = c.Bind("Mobs", "Enabled", true, "Spawn Minecraft mobs at night (host decides).");
             MobDensity = c.Bind("Mobs", "Density", 1.0f, new ConfigDescription("Multiplies the night spawn chance (host decides).", new AcceptableValueRange<float>(0f, 3f)));
@@ -71,6 +73,9 @@ namespace BlockPeak.Core
             TestMode = c.Bind("Testing", "TestMode", false, "Debug mode, read when PEAK starts: the / command chat (/time set, /gamemode, /summon, /kill @e, /heal, /help) and the F6 item/mob menu. Switch it with the setup program before starting PEAK. In multiplayer the HOST must have it on too.");
             TestMenuKey = c.Bind("Testing", "TestMenuKey", KeyCode.F6, "Opens and closes the test menu (when TestMode is on).");
             Debug = TestMode.Value;
+            McParticles = c.Bind("Visuals", "MinecraftParticles", false, "Draw PEAK's particles and effects (smoke, fire, sparks, splashes, dust...) with Minecraft's particle textures. Read when PEAK starts (the setup has a switch for it).");
+            McClouds = c.Bind("Visuals", "MinecraftClouds", false, "Replace PEAK's clouds with Minecraft's blocky clouds. Read when PEAK starts (the setup has a switch for it).");
+            CloudHeight = c.Bind("Visuals", "MinecraftCloudHeight", 0f, "Height of the Minecraft cloud layer. 0 = automatic (where PEAK's own clouds were).");
             ItemShaderOverride = c.Bind("Debug", "ItemShaderOverride", "", "Advanced: name of a shader to draw Minecraft items with if they look wrong (e.g. 'Universal Render Pipeline/Lit'). Empty = copy PEAK's item material.");
         }
 

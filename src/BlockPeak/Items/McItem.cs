@@ -30,7 +30,8 @@ namespace BlockPeak.Items
                     var (min, max) = def.Find;
                     int n = Mathf.Clamp(Random.Range(min, max + 1), 1, def.Stack);
                     if (def.Stack > 1) Stacks.SetCount(item.data, n, def.Stack);
-                    if (def.Kind == McKind.Elytra) Stacks.SetDurability(item.data, Balance.F(def.Cfg, "startDurability", 0.12f));
+                    if (def.Kind == McKind.Elytra) Stacks.SetDurability(item.data, Balance.F(def.Cfg, "startDurability", 1f));
+                    if (def.Kind == McKind.Bow) Stacks.SetArrows(item.data, Balance.I(def.Cfg, "arrows", 16));
                     Stacks.MarkRolled(item.data);
                 }
             }

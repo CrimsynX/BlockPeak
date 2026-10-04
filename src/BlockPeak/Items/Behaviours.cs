@@ -48,6 +48,9 @@ namespace BlockPeak.Items
                 case McKind.Boat:
                     go.AddComponent<McBoatPlace>().OnPressed = true;
                     break;
+                case McKind.Bow:
+                    go.AddComponent<McBow>().OnPressed = true;
+                    break;
             }
         }
 
@@ -128,10 +131,11 @@ namespace BlockPeak.Items
                     moveSpeedMod = Balance.F(def.Cfg, "moveSpeed", 0.35f),
                     climbSpeedMod = Balance.F(def.Cfg, "climbSpeed", 0.25f),
                 });
+                LocalEffects.StartSpeed(seconds);
             }
             else if (def.Effect == "jump")
             {
-                LocalEffects.StartJumpBoost(c, Balance.F(def.Cfg, "jumpMultiplier", 1.6f), seconds);
+                LocalEffects.StartJumpBoost(c, Balance.F(def.Cfg, "jumpExtraVelocity", 4f), seconds);
             }
             Sfx.At("random/drink", c.Head, 0.7f);
             item.StartCoroutine(item.ConsumeDelayed(true));

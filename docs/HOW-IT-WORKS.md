@@ -17,13 +17,13 @@ Items/               ItemDefs, ItemRegistry (builds the items), McItem, Behaviou
                      Effects (totem, horn, jump boost), PeakEffects (PEAK afflictions), Elytra, Loot,
                      Projectiles, Stacks
 Building/            BlockWorld (host-owned placed blocks), PlacedBlock (looks, breaking, TNT), Explosions,
-                     PlacementPreview (outline), LadderRopes (hidden PEAK ropes behind ladders), Boats
-Mobs/                BodyMobs + BodyMob (night mobs and the warden on PEAK zombie bodies), McMobs (the
+                     PlacementPreview (outline), Boats
+Mobs/                BodyMobs + BodyMob + WardenBrain (night mobs and the warden on PEAK zombie bodies), McMobs (the
                      lightweight zombie horde), MobModels (Minecraft box models), MobDirector (routes to both)
 Modes/               CustomOptions (check boxes in the Custom run window), GameModes (chases, starter kit),
-                     Rains (anvil/TNT rain)
+                     Rains (anvil/TNT rain), Chests (Minecraft chests)
 UI/                  Banner, Fx (particles, Minecraft explosion puffs), ChatBox + Commands (debug chat),
-                     TestMenu (F6)
+                     TestMenu (F6), McVisuals (Minecraft particles and clouds)
 ```
 
 ## Hotbar
@@ -61,9 +61,7 @@ spawners within 40 m of the start (`SpawnPoint.allSpawnPoints`) and items whose 
 
 Blocks live on a world grid. A player asks the host to place/break (`Op.BlockPlaceReq`), the host checks the limit
 and tells everyone (`Op.BlockPlaced`). A player who joins late gets a snapshot. Blocks use PEAK's `Map` layer so
-scouts stand on and climb them. Each vertical run of ladders gets a real PEAK rope (spawned by the host through
-the RopeShooter's anchor prefab, `RpcTarget.AllBuffered`) whose renderers are hidden, so ladders climb exactly
-like PEAK's ropes. Breaking uses PEAK's hold-to-interact system (`IInteractibleConstant`). Explosions use
+scouts stand on and climb them. Breaking uses PEAK's hold-to-interact system (`IInteractibleConstant`). Explosions use
 Minecraft's own explosion sprites (a handful of billboards, no PEAK effect prefab) and a strong knockback; damage
 and knockback are applied by each player's own game. `PlacementPreview` draws a wireframe outline of where the
 held block would go (red when it can't).
@@ -96,6 +94,12 @@ movement keys steer (`CharacterInput.Sample` postfix) and fall damage is capped 
 
 The debug chat only exists when `TestMode` was on when PEAK started. Commands that change the world (`/time`,
 `/summon`, `/kill`) run on the host (`Op.DebugCmd`); the others are local.
+
+## Textures
+
+All Minecraft materials use alpha cut-out, so transparent pixels (skeleton ribs, chest and boat gaps) are not drawn.
+Models with rotated parts (boat, warden tendrils) use Minecraft's own part pivots and rotations: Minecraft's model
+space maps to Unity's by flipping x, y and z, which leaves rotation matrices unchanged.
 
 ## Custom-run modes
 

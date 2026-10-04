@@ -55,6 +55,12 @@ namespace BlockPeak.Net
         ModeCountdown = 50,
         RainSpawn = 51,
         ModeMessage = 52,
+        ArrowHitPlayer = 53,
+        BowArrows = 54,
+        ChestSpawn = 55,
+        ChestOpenReq = 56,
+        ChestOpened = 57,
+        ChestSnapshot = 58,
     }
 
     /// <summary>

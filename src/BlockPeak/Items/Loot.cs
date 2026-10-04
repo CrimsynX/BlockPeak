@@ -101,6 +101,7 @@ namespace BlockPeak.Items
                 if (__result == null || !ItemRegistry.Ready) return;
                 if (!PhotonNetwork.IsMasterClient) return;
                 if (Modes.CustomOptions.On(Modes.CustomOptions.McItemsOnly)) { OnlyMinecraft(__instance, __result); return; }
+                if (Modes.CustomOptions.ChestFrequency != null) return; // Minecraft items only come from Minecraft chests
                 if (!(__instance is Luggage)) return;
                 string pool = Loot.PoolName(__instance.GetSpawnPool());
                 bool biome = Loot.IsBiomePool(pool), rare = Loot.IsRarePool(pool);

@@ -14,7 +14,7 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('gui', 'install', 'uninstall', 'uninstall-all', 'assets', 'status', 'play', 'vanilla', 'modded', 'testmode-on', 'testmode-off')]
+    [ValidateSet('gui', 'install', 'uninstall', 'uninstall-all', 'assets', 'status', 'play', 'vanilla', 'modded', 'testmode-on', 'testmode-off', 'particles-on', 'particles-off', 'clouds-on', 'clouds-off')]
     [string]$Action = 'gui',
     [string]$GamePath = '',
     [string]$MinecraftPath = '',
@@ -453,25 +453,61 @@ function Set-Modded([bool]$on) {
     }
 }
 
-function Set-TestMode([bool]$on) {
+function Get-CfgPath {
     $game = Find-Peak
     if (-not $game) { throw 'PEAK was not found.' }
     $dir = Join-Path $game 'BepInEx/config'
     if (-not (Test-Path $dir)) { throw 'Run Install first.' }
-    $cfg = Join-Path $dir 'com.blockpeak.mod.cfg'
-    $value = 'false'
-    if ($on) { $value = 'true' }
+    return (Join-Path $dir 'com.blockpeak.mod.cfg')
+}
+
+# Read one setting from BlockPeak's .cfg ($null when not there yet).
+function Get-CfgValue([string]$key) {
+    try { $cfg = Get-CfgPath } catch { return $null }
+    if (-not (Test-Path $cfg)) { return $null }
+    $m = [regex]::Match([IO.File]::ReadAllText($cfg), "(?m)^$key[ \t]*=[ \t]*([^\s]+)")
+    if ($m.Success) { return $m.Groups[1].Value }
+    return $null
+}
+
+# Write one setting (adds the section and key when the .cfg does not have them yet).
+function Set-CfgValue([string]$section, [string]$key, [string]$value) {
+    $cfg = Get-CfgPath
     $text = ''
     if (Test-Path $cfg) { $text = [IO.File]::ReadAllText($cfg) }
-    if ($text -match '(?m)^TestMode\s*=') {
-        $text = [regex]::Replace($text, '(?m)^TestMode\s*=\s*\w+', "TestMode = $value")
+    if ($text -match "(?m)^$key[ \t]*=") {
+        $text = [regex]::Replace($text, "(?m)^$key[ \t]*=[ \t]*[^\s]*", "$key = $value")
+    }
+    elseif ($text -match "(?m)^\[$section\][ \t]*\r?$") {
+        # The lookahead leaves the line ending in place, so the new key line keeps the file's own line ending.
+        $text = ([regex]"(?m)^\[$section\][ \t]*(?=\r?$)").Replace($text, "[$section]`r`n`r`n$key = $value", 1)
     }
     else {
-        $text = $text.TrimEnd() + "`r`n`r`n[Testing]`r`n`r`nTestMode = $value`r`n"
+        $text = $text.TrimEnd() + "`r`n`r`n[$section]`r`n`r`n$key = $value`r`n"
     }
     [IO.File]::WriteAllText($cfg, $text)
+}
+
+function Set-TestMode([bool]$on) {
+    $value = 'false'
+    if ($on) { $value = 'true' }
+    Set-CfgValue 'Testing' 'TestMode' $value
     if ($on) { Write-Log 'Debug mode ON. Start (or restart) PEAK now: F6 opens the item / mob menu and / opens the command chat (type /help). The host needs it on too.' 'ok' }
     else { Write-Log 'Debug mode OFF. Restart PEAK if it is running.' 'ok' }
+}
+
+function Set-Visual([string]$key, [bool]$on, [string]$what) {
+    $value = 'false'
+    if ($on) { $value = 'true' }
+    Set-CfgValue 'Visuals' $key $value
+    if ($on) { Write-Log "$what ON. Takes effect the next time PEAK starts." 'ok' }
+    else { Write-Log "$what OFF. Takes effect the next time PEAK starts." 'ok' }
+}
+
+function Get-ModsOn {
+    $game = Find-Peak
+    if (-not $game) { return $false }
+    return (Test-Path (Join-Path $game 'winhttp.dll'))
 }
 
 function Start-Peak {
@@ -488,7 +524,7 @@ function Show-Gui {
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'BlockPeak Setup ' + (Get-PluginVersion)
-    $form.Size = New-Object System.Drawing.Size(720, 640)
+    $form.Size = New-Object System.Drawing.Size(720, 780)
     $form.StartPosition = 'CenterScreen'
     $form.BackColor = [System.Drawing.Color]::FromArgb(32, 34, 37)
     $form.ForeColor = [System.Drawing.Color]::White
@@ -515,7 +551,7 @@ function Show-Gui {
     $log.BackColor = [System.Drawing.Color]::FromArgb(20, 21, 23)
     $log.ForeColor = [System.Drawing.Color]::Gainsboro
     $log.Font = New-Object System.Drawing.Font('Consolas', 9)
-    $log.Location = New-Object System.Drawing.Point(16, 340)
+    $log.Location = New-Object System.Drawing.Point(16, 480)
     $log.Size = New-Object System.Drawing.Size(670, 240)
     $form.Controls.Add($log)
     $script:LogBox = $log
@@ -528,21 +564,17 @@ function Show-Gui {
         @('Install / Update', { Invoke-Install }, 0, 0, $true),
         @('Play', { Start-Peak }, 1, 0, $true),
         @('Copy Minecraft textures', { $g = Find-Peak; if (-not $g) { throw 'PEAK not found.' }; [void](Copy-MinecraftAssets $g) }, 2, 0, $false),
-        @('Mods ON', { Set-Modded $true }, 0, 1, $false),
-        @('Mods OFF (vanilla)', { Set-Modded $false }, 1, 1, $false),
         @('Uninstall', {
             $r = [System.Windows.Forms.MessageBox]::Show('Remove BlockPeak? Choose Yes to also remove BepInEx (if this setup installed it) and BlockPeak settings.', 'Uninstall', 'YesNoCancel')
             if ($r -eq 'Yes') { Invoke-Uninstall $true } elseif ($r -eq 'No') { Invoke-Uninstall $false }
-        }, 2, 1, $false),
+        }, 0, 1, $false),
         @('Choose PEAK folder', {
             $dlg = New-Object System.Windows.Forms.FolderBrowserDialog
             $dlg.Description = 'Pick the PEAK folder (the one with PEAK.exe)'
             if ($dlg.ShowDialog() -eq 'OK') { $script:GamePath = $dlg.SelectedPath; Set-Variable -Name GamePath -Value $dlg.SelectedPath -Scope Script; Write-Log "Using $($dlg.SelectedPath)" }
-        }, 0, 2, $false),
-        @('Open settings folder', { $g = Find-Peak; $d = Join-Path $g 'BepInEx/config'; if (Test-Path $d) { Start-Process explorer.exe $d } else { throw 'Run Install first.' } }, 1, 2, $false),
-        @('Open game log', { $g = Find-Peak; $f = Join-Path $g 'BepInEx/LogOutput.log'; if (Test-Path $f) { Start-Process notepad.exe $f } else { throw 'No log yet - start PEAK once.' } }, 2, 2, $false),
-        @('Debug mode ON (before PEAK)', { Set-TestMode $true }, 0, 3, $false),
-        @('Debug mode OFF', { Set-TestMode $false }, 1, 3, $false)
+        }, 1, 1, $false),
+        @('Open settings folder', { $g = Find-Peak; $d = Join-Path $g 'BepInEx/config'; if (Test-Path $d) { Start-Process explorer.exe $d } else { throw 'Run Install first.' } }, 2, 1, $false),
+        @('Open game log', { $g = Find-Peak; $f = Join-Path $g 'BepInEx/LogOutput.log'; if (Test-Path $f) { Start-Process notepad.exe $f } else { throw 'No log yet - start PEAK once.' } }, 0, 2, $false)
     )
     foreach ($b in $buttons) {
         $btn = New-Object System.Windows.Forms.Button
@@ -558,11 +590,67 @@ function Show-Gui {
             param($sender, $eventArgs)
             $form.UseWaitCursor = $true
             try { & $sender.Tag } catch { Write-Log ('Problem: ' + $_.Exception.Message) 'error'; [void][System.Windows.Forms.MessageBox]::Show($_.Exception.Message, 'BlockPeak Setup') }
-            finally { $form.UseWaitCursor = $false; & $refresh }
+            finally { $form.UseWaitCursor = $false; & $refresh; & $syncPills }
         })
         $form.Controls.Add($btn)
     }
-    $form.Add_Shown({ & $refresh; Write-Log 'Ready. Press "Install / Update" to set everything up.' })
+    # ---- switches (pill-shaped toggles). Each one's state and actions ride along in Tag.
+    $switches = @(
+        @{ Label = 'Mods (off = vanilla PEAK, for normal lobbies)'; Get = { Get-ModsOn }; Set = { param($v) Set-Modded $v } },
+        @{ Label = 'Debug mode (F6 menu and / commands) - set before starting PEAK'; Get = { (Get-CfgValue 'TestMode') -eq 'true' }; Set = { param($v) Set-TestMode $v } },
+        @{ Label = 'Minecraft particles and effects'; Get = { (Get-CfgValue 'MinecraftParticles') -eq 'true' }; Set = { param($v) Set-Visual 'MinecraftParticles' $v 'Minecraft particles' } },
+        @{ Label = 'Minecraft clouds'; Get = { (Get-CfgValue 'MinecraftClouds') -eq 'true' }; Set = { param($v) Set-Visual 'MinecraftClouds' $v 'Minecraft clouds' } }
+    )
+    $script:Pills = @()
+    $row = 0
+    foreach ($sw in $switches) {
+        $pill = New-Object System.Windows.Forms.Panel
+        $pill.Size = New-Object System.Drawing.Size(52, 26)
+        $pill.Location = New-Object System.Drawing.Point(16, (300 + $row * 40))
+        $pill.Cursor = [System.Windows.Forms.Cursors]::Hand
+        $state = $false
+        try { $state = [bool](& $sw.Get) } catch { }
+        $pill.Tag = @{ On = $state; Set = $sw.Set; Get = $sw.Get }
+        $pill.Add_Paint({
+            param($sender, $e)
+            $g = $e.Graphics
+            $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+            $w = $sender.Width - 1; $h = $sender.Height - 1
+            $path = New-Object System.Drawing.Drawing2D.GraphicsPath
+            $path.AddArc(0, 0, $h, $h, 90, 180)
+            $path.AddArc($w - $h, 0, $h, $h, 270, 180)
+            $path.CloseFigure()
+            if ($sender.Tag.On) { $track = [System.Drawing.Color]::FromArgb(76, 175, 80) } else { $track = [System.Drawing.Color]::FromArgb(90, 94, 102) }
+            $brush = New-Object System.Drawing.SolidBrush($track)
+            $g.FillPath($brush, $path)
+            $knobX = 3
+            if ($sender.Tag.On) { $knobX = $w - $h + 3 }
+            $g.FillEllipse([System.Drawing.Brushes]::White, $knobX, 3, $h - 6, $h - 6)
+            $brush.Dispose(); $path.Dispose()
+        })
+        $pill.Add_Click({
+            param($sender, $eventArgs)
+            $want = -not $sender.Tag.On
+            $form.UseWaitCursor = $true
+            try { & $sender.Tag.Set $want; $sender.Tag.On = $want }
+            catch { Write-Log ('Problem: ' + $_.Exception.Message) 'error'; [void][System.Windows.Forms.MessageBox]::Show($_.Exception.Message, 'BlockPeak Setup') }
+            finally { $form.UseWaitCursor = $false; $sender.Invalidate(); & $refresh }
+        })
+        $form.Controls.Add($pill)
+        $script:Pills += $pill
+        $lbl = New-Object System.Windows.Forms.Label
+        $lbl.Text = $sw.Label
+        $lbl.AutoSize = $true
+        $lbl.Location = New-Object System.Drawing.Point(80, (303 + $row * 40))
+        $form.Controls.Add($lbl)
+        $row++
+    }
+    # After Install the .cfg exists, so re-read every switch whenever the window refreshes.
+    $syncPills = {
+        foreach ($p in $script:Pills) { try { $p.Tag.On = [bool](& $p.Tag.Get) } catch { }; $p.Invalidate() }
+    }
+
+    $form.Add_Shown({ & $refresh; & $syncPills; Write-Log 'Ready. Press "Install / Update" to set everything up.' })
     [void]$form.ShowDialog()
 }
 
@@ -584,6 +672,10 @@ try {
         'modded' { Set-Modded $true }
         'testmode-on' { Set-TestMode $true }
         'testmode-off' { Set-TestMode $false }
+        'particles-on' { Set-Visual 'MinecraftParticles' $true 'Minecraft particles' }
+        'particles-off' { Set-Visual 'MinecraftParticles' $false 'Minecraft particles' }
+        'clouds-on' { Set-Visual 'MinecraftClouds' $true 'Minecraft clouds' }
+        'clouds-off' { Set-Visual 'MinecraftClouds' $false 'Minecraft clouds' }
     }
 }
 catch {

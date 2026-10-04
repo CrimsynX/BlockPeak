@@ -125,7 +125,7 @@ namespace BlockPeak.UI
             if (GUILayout.Button("Remove all blocks", GUILayout.Width(150), GUILayout.Height(28))) Channel.Host(Op.TestClear, "blocks");
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
-            GUILayout.Label("Tips: blocks, TNT, torches and ladders can be placed in the Airport too. Natural night spawns only happen on the mountain; " +
+            GUILayout.Label("Tips: blocks, TNT and torches can be placed in the Airport too. Natural night spawns only happen on the mountain; " +
                             "the night toggle only changes how mobs behave (no burning/vanishing), not the sky.");
             GUILayout.EndScrollView();
             GUILayout.EndArea();
@@ -143,7 +143,8 @@ namespace BlockPeak.UI
             var data = new ItemInstanceData(Guid.NewGuid());
             ItemInstanceDataHandler.AddInstanceData(data);
             if (def.Stack > 1) Stacks.SetCount(data, def.Stack, def.Stack);
-            if (def.Kind == McKind.Elytra) Stacks.SetDurability(data, Balance.F(def.Cfg, "startDurability", 0.12f));
+            if (def.Kind == McKind.Elytra) Stacks.SetDurability(data, Balance.F(def.Cfg, "startDurability", 1f));
+            if (def.Kind == McKind.Bow) Stacks.SetArrows(data, Balance.I(def.Cfg, "arrows", 16));
             Stacks.MarkRolled(data);
             try
             {

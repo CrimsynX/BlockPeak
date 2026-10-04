@@ -212,6 +212,7 @@ namespace BlockPeak.Items
             var mf = visual.AddComponent<MeshFilter>();
             var mr = visual.AddComponent<MeshRenderer>();
             ApplyLooks(def, mf, mr, visual.transform);
+            if (def.Kind == McKind.Sword) OneHanded(go.transform, item, def);
             var box = go.AddComponent<BoxCollider>();
             var vb = mf.sharedMesh.bounds;
             box.center = visual.transform.localPosition + visual.transform.localRotation * Vector3.Scale(vb.center, visual.transform.localScale);
@@ -253,6 +254,20 @@ namespace BlockPeak.Items
             if (def.Stack > 1) go.AddComponent<Action_ReduceUses>(); // provides the ReduceUsesRPC that stacks use
             Behaviours.Attach(def, go);
             return item;
+        }
+
+        /// <summary>
+        /// Sword: held in the right hand only. The left hand's grip point is moved down beside the body so PEAK's arm
+        /// IK lets that arm hang, and the item sits a bit to the right of the screen like Minecraft.
+        /// </summary>
+        private static void OneHanded(Transform root, Item item, McItemDef def)
+        {
+            var handR = root.Find("Hand_R");
+            var handL = root.Find("Hand_L");
+            var hold = def.Cfg["hold"];
+            if (handR != null && handL != null)
+                handL.localPosition = handR.localPosition + V3(hold?["leftHand"], new Vector3(-0.45f, -0.55f, -0.35f));
+            item.defaultPos += V3(hold?["screen"], new Vector3(0.22f, -0.06f, 0f));
         }
 
         private static void SafeDestroy(UnityEngine.Object o)
@@ -362,6 +377,7 @@ namespace BlockPeak.Items
             var anchor = t.GetComponent<VisualAnchor>() ?? t.gameObject.AddComponent<VisualAnchor>();
             if (anchor.basePos == Vector3.zero) anchor.basePos = t.localPosition;
             Vector3 offset = Vector3.zero, rot = Vector3.zero;
+            Vector2? grip = null; // sprite point (−0.5..0.5) that sits in the right hand
             float scale;
             switch (def.Kind)
             {
@@ -389,13 +405,19 @@ namespace BlockPeak.Items
                     var tex = IconFor(def);
                     mf.sharedMesh = Meshes.ItemSprite(tex);
                     mr.sharedMaterial = Mat.For(tex);
-                    scale = def.Kind == McKind.Sword ? 0.6f : def.Kind == McKind.Elytra || def.Kind == McKind.Boat ? 0.5f : 0.38f;
+                    scale = def.Kind == McKind.Sword ? 0.6f : def.Kind == McKind.Bow ? 0.55f : def.Kind == McKind.Elytra || def.Kind == McKind.Boat ? 0.5f : 0.38f;
                     if (def.Kind == McKind.Sword)
                     {
-                        // The sprite's blade runs bottom-left (handle) to top-right (tip): turn it upright,
-                        // lean the tip forward a little and put the handle in the hand like Minecraft.
-                        rot = new Vector3(25f, 0f, 45f);
-                        offset = new Vector3(0f, 0.2f, 0.05f);
+                        // Handle bottom-left, tip top-right in the sprite: stand the blade up (z 45), lean the tip
+                        // forward (x) and turn it a little to the left (y), like Minecraft's right-hand view.
+                        rot = new Vector3(30f, -55f, 45f);
+                        grip = new Vector2(-0.33f, -0.33f);
+                    }
+                    else if (def.Kind == McKind.Bow)
+                    {
+                        // String runs bottom-left to top-right: stand it up, bow limbs pointing away from you.
+                        rot = new Vector3(0f, 70f, 45f);
+                        grip = new Vector2(-0.22f, 0.02f);
                     }
                     break;
                 }
@@ -410,6 +432,13 @@ namespace BlockPeak.Items
             }
             t.localPosition = anchor.basePos + offset;
             t.localRotation = Quaternion.Euler(rot);
+            var handR = t.parent != null ? t.parent.Find("Hand_R") : null;
+            if (grip.HasValue && handR != null)
+            {
+                // One-handed: the grip point of the sprite goes exactly into the right hand.
+                Vector3 g = Quaternion.Euler(rot) * new Vector3(grip.Value.x, grip.Value.y, 0f) * scale;
+                t.localPosition = handR.localPosition - g + offset;
+            }
             t.localScale = Vector3.one * scale;
             mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
         }

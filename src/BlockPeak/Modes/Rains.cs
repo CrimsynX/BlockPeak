@@ -20,7 +20,7 @@ namespace BlockPeak.Modes
     {
         private static bool anvilOn, tntOn;
         private static float nextAnvil = -1f, nextTnt = -1f, anvilUntil = -1f, tntUntil = -1f;
-        private static float lastStep;
+        private static float lastStep, anvilRate = 1f, tntRate = 1f;
         private static readonly List<Falling> alive = new List<Falling>();
         private static GameObject root;
         private static Mesh anvilMesh, tntMesh;
@@ -53,8 +53,10 @@ namespace BlockPeak.Modes
             anvilOn = anvil;
             tntOn = tnt;
             float first = Balance.F(R, "firstDelay", 45f);
-            if (anvil) nextAnvil = Time.time + first + UnityEngine.Random.Range(0f, 30f);
-            if (tnt) nextTnt = Time.time + first + UnityEngine.Random.Range(15f, 60f);
+            if (anvil) nextAnvil = Time.time + first + UnityEngine.Random.Range(0f, 90f);
+            if (tnt) nextTnt = Time.time + first + UnityEngine.Random.Range(0f, 90f);
+            // Both on: never at the same time; the later one waits until well after the other.
+            if (anvil && tnt && Mathf.Abs(nextAnvil - nextTnt) < 60f) nextTnt = nextAnvil + UnityEngine.Random.Range(60f, 120f);
             if (anvil || tnt) Plugin.Log.LogInfo($"Rain: anvils {anvil}, TNT {tnt}");
         }
 
@@ -64,26 +66,40 @@ namespace BlockPeak.Modes
         {
             if (!anvilOn && !tntOn) return;
             float now = Time.time;
-            float min = Balance.F(R, "everyMin", 60f), max = Balance.F(R, "everyMax", 180f), len = Balance.F(R, "seconds", 12f);
+            float min = Balance.F(R, "everyMin", 90f), max = Balance.F(R, "everyMax", 240f);
+            float lenMin = Balance.F(R, "secondsMin", 15f), lenMax = Balance.F(R, "secondsMax", 30f);
+            float gap = Balance.F(R, "gapBetweenRains", 45f);
 
             if (anvilOn && nextAnvil > 0f && now >= nextAnvil)
             {
-                anvilUntil = now + len;
-                nextAnvil = anvilUntil + UnityEngine.Random.Range(min, max);
-                Channel.All(Op.ModeMessage, true, "It's raining anvils!", 3f, "random/anvil_land");
+                if (now < tntUntil + gap) nextAnvil = tntUntil + gap + UnityEngine.Random.Range(5f, 40f);
+                else
+                {
+                    anvilUntil = now + UnityEngine.Random.Range(lenMin, lenMax);
+                    anvilRate = UnityEngine.Random.Range(0.6f, 1.4f);
+                    nextAnvil = anvilUntil + UnityEngine.Random.Range(min, max);
+                    Channel.All(Op.ModeMessage, true, "It's raining anvils!", 3f, "random/anvil_land");
+                }
             }
             if (tntOn && nextTnt > 0f && now >= nextTnt)
             {
-                tntUntil = now + len;
-                nextTnt = tntUntil + UnityEngine.Random.Range(min, max);
-                Channel.All(Op.ModeMessage, true, "It's raining TNT!", 3f, "random/fuse");
+                if (now < anvilUntil + gap) nextTnt = anvilUntil + gap + UnityEngine.Random.Range(5f, 40f);
+                else
+                {
+                    tntUntil = now + UnityEngine.Random.Range(lenMin, lenMax);
+                    tntRate = UnityEngine.Random.Range(0.6f, 1.4f);
+                    nextTnt = tntUntil + UnityEngine.Random.Range(min, max);
+                    Channel.All(Op.ModeMessage, true, "It's raining TNT!", 3f, "random/fuse");
+                }
             }
 
             const float step = 0.25f;
             if (now - lastStep < step) return;
             lastStep = now;
-            if (now < anvilUntil) Drop(false, Balance.F(R, "anvilsPerSecond", 1f) * step);
-            if (now < tntUntil) Drop(true, Balance.F(R, "tntPerSecond", 0.7f) * step);
+            // Gusts: the rate swells and fades during a rain so it never feels like a fixed rhythm.
+            float gust = 0.6f + 0.8f * Mathf.PerlinNoise(now * 0.15f, 3.7f);
+            if (now < anvilUntil) Drop(false, Balance.F(R, "anvilsPerSecond", 1f) * anvilRate * gust * step);
+            if (now < tntUntil) Drop(true, Balance.F(R, "tntPerSecond", 0.7f) * tntRate * gust * step);
         }
 
         private static readonly List<float> batch = new List<float>();
@@ -155,6 +171,7 @@ namespace BlockPeak.Modes
                     {
                         Landed = true;
                         if (!Tnt) Sfx.At("random/anvil_land", transform.position, 0.9f, UnityEngine.Random.Range(0.9f, 1.1f), 48f);
+                        if (!Tnt && IsHost) BodyMobs.HostVibration(transform.position, 1.5f);
                         else if (ExplodeAt < 0f)
                         {
                             ExplodeAt = Time.time + UnityEngine.Random.Range(Balance.F(R, "tntFuseMin", 0.5f), Balance.F(R, "tntFuseMax", 2f));

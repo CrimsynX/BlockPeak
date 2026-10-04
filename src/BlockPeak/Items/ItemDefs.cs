@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace BlockPeak.Items
 {
-    public enum McKind { Block, Torch, Ladder, Tnt, Food, EnderPearl, Elytra, Boat, WindCharge, GoatHorn, Totem, Sword, Potion }
+    public enum McKind { Block, Torch, Ladder, Tnt, Food, EnderPearl, Elytra, Boat, WindCharge, GoatHorn, Totem, Sword, Potion, Bow }
 
     /// <summary>One Minecraft item that can turn up in PEAK.</summary>
     public class McItemDef
@@ -69,7 +69,7 @@ namespace BlockPeak.Items
             Block("stone_bricks", "Stone Bricks", "block/stone_bricks.png");
             Add(new McItemDef { Key = "torch", Name = "Torch", Kind = McKind.Torch, Texture = "block/torch.png", Prompt = "BP_PLACE" });
             Skip(); // 9 was the redstone torch (removed in 0.2.0; ids of later items stay the same)
-            Add(new McItemDef { Key = "ladder", Name = "Ladder", Kind = McKind.Ladder, Texture = "block/ladder.png", Prompt = "BP_PLACE" });
+            Skip(); // was the ladder (removed in 0.3.0)
             Add(new McItemDef { Key = "tnt", Name = "TNT", Kind = McKind.Tnt, Side = "block/tnt_side.png", Top = "block/tnt_top.png", Bottom = "block/tnt_bottom.png", Prompt = "BP_PLACE" });
             Add(new McItemDef { Key = "ender_pearl", Name = "Ender Pearl", Kind = McKind.EnderPearl, Texture = "item/ender_pearl.png", Prompt = "BP_THROW" });
             Add(new McItemDef { Key = "elytra", Name = "Elytra", Kind = McKind.Elytra, Texture = "item/elytra.png", Prompt = "BP_GLIDE" });
@@ -86,6 +86,7 @@ namespace BlockPeak.Items
             Food("rotten_flesh", "Rotten Flesh", "item/rotten_flesh.png");
             Add(new McItemDef { Key = "potion_swiftness", Name = "Potion of Swiftness", Kind = McKind.Potion, Texture = "item/potion.png", Effect = "speed", Tint = new Color(0.2f, 0.92f, 1f), Prompt = "BP_DRINK" });
             Add(new McItemDef { Key = "potion_leaping", Name = "Potion of Leaping", Kind = McKind.Potion, Texture = "item/potion.png", Effect = "jump", Tint = new Color(0.99f, 1f, 0.52f), Prompt = "BP_DRINK" });
+            Add(new McItemDef { Key = "bow", Name = "Bow", Kind = McKind.Bow, Texture = "item/bow.png", Prompt = "BP_SHOOT" });
         }
 
         private static int nextIndex;

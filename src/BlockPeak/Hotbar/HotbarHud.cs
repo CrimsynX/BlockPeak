@@ -170,11 +170,13 @@ namespace BlockPeak.Hotbar
             {
                 countText = uses.Value.ToString();
             }
+            if (def != null && def.Kind == McKind.Bow) countText = Stacks.Arrows(s.data, Balance.I(def.Cfg, "arrows", 16)).ToString();
             SetCount(v, countText);
 
             // Durability bar: elytra, or PEAK fuel/charge items (lantern, etc.).
             float frac = -1f;
-            if (def != null && def.Kind == McKind.Elytra) frac = Stacks.Durability(s.data, 0.12f);
+            if (def != null && def.Kind == McKind.Elytra) frac = Stacks.Durability(s.data, 1f);
+            if (def != null && def.Kind == McKind.Bow) frac = Stacks.Arrows(s.data, 16) / Mathf.Max(1f, Balance.I(def.Cfg, "arrows", 16));
             else if (def == null && Character.observedCharacter == Character.localCharacter && s.data != null && !s.prefab.UIData.hideFuel
                      && s.data.TryGetDataEntry<FloatItemData>(DataEntryKey.UseRemainingPercentage, out var pct) && pct.Value < 0.999f)
                 frac = pct.Value;
@@ -199,7 +201,7 @@ namespace BlockPeak.Hotbar
             var def = ItemDefs.ByKey("elytra");
             chestSlot.Icon.texture = ItemRegistry.IconFor(def);
             chestSlot.Icon.enabled = true;
-            float frac = Mathf.Clamp01(Stacks.Durability(slot.data, 0.12f) / 0.12f);
+            float frac = Mathf.Clamp01(Stacks.Durability(slot.data, 1f)); // same bar as the hotbar slot
             chestSlot.BarBack.enabled = chestSlot.BarFill.enabled = true;
             chestSlot.BarFill.rectTransform.sizeDelta = new Vector2(Mathf.Round(13 * frac) * builtScale, builtScale);
             chestSlot.BarFill.color = Color.HSVToRGB(frac / 3f, 1f, 1f);

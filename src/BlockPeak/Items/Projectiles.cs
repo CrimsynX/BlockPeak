@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace BlockPeak.Items
 {
-    public enum ProjectileKind : byte { Pearl = 1, WindCharge = 2, Arrow = 3 }
+    public enum ProjectileKind : byte { Pearl = 1, WindCharge = 2, Arrow = 3, PlayerArrow = 4 }
 
     /// <summary>
     /// Thrown ender pearls, wind charges and skeleton arrows. The thrower's game decides what they hit
@@ -26,6 +26,7 @@ namespace BlockPeak.Items
             public int Owner;          // actor that threw it
             public Transform View;
             public string MobType;     // arrows: who shot it (status effects)
+            public float Power = 1f;   // player arrows: bow draw 0..1
         }
 
         private static readonly List<Shot> shots = new List<Shot>();
@@ -38,6 +39,7 @@ namespace BlockPeak.Items
             {
                 if (s == (PhotonNetwork.LocalPlayer?.ActorNumber ?? -1)) return;
                 Spawn((ProjectileKind)Channel.Byte(a[0]), Channel.Vec(a[1]), Channel.Vec(a[2]), false, s, null);
+                if ((ProjectileKind)Channel.Byte(a[0]) == ProjectileKind.PlayerArrow) Sfx.At("random/bow", Channel.Vec(a[1]), 0.7f);
             });
             Channel.On(Op.Arrow, (a, s) =>
             {
@@ -63,6 +65,15 @@ namespace BlockPeak.Items
             Channel.Others(Op.Projectile, true, (byte)kind, from, vel);
         }
 
+        /// <summary>Local player shoots a bow.</summary>
+        public static void ShootArrow(Vector3 from, Vector3 vel, float power)
+        {
+            int me = PhotonNetwork.LocalPlayer?.ActorNumber ?? 0;
+            Spawn(ProjectileKind.PlayerArrow, from, vel, true, me, null);
+            shots[shots.Count - 1].Power = power;
+            Channel.Others(Op.Projectile, true, (byte)ProjectileKind.PlayerArrow, from, vel);
+        }
+
         /// <summary>Host: a mob fires an arrow.</summary>
         public static void FireArrow(Vector3 from, Vector3 vel, string mobType)
         {
@@ -80,17 +91,11 @@ namespace BlockPeak.Items
             var mf = go.AddComponent<MeshFilter>();
             var mr = go.AddComponent<MeshRenderer>();
             mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            if (kind == ProjectileKind.Arrow)
+            if (kind == ProjectileKind.Arrow || kind == ProjectileKind.PlayerArrow)
             {
-                if (arrowMesh == null)
-                {
-                    var mb = new MeshBuilder();
-                    var r = new Rect(0, 0, 1, 1);
-                    mb.Box(new Vector3(-0.025f, -0.025f, -0.35f), new Vector3(0.025f, 0.025f, 0.35f), new[] { r, r, r, r, r, r });
-                    arrowMesh = mb.Build("mc_arrow");
-                }
+                if (arrowMesh == null) arrowMesh = ArrowMesh();
                 mf.sharedMesh = arrowMesh;
-                mr.sharedMaterial = Mat.Solid(new Color(0.45f, 0.32f, 0.2f));
+                mr.sharedMaterial = Mat.For(McAssets.Tex("entity/projectiles/arrow.png"));
             }
             else
             {
@@ -100,6 +105,31 @@ namespace BlockPeak.Items
                 go.transform.localScale = Vector3.one * 0.3f;
             }
             shots.Add(new Shot { Kind = kind, Pos = from, Vel = vel, Authority = authority, Owner = owner, View = go.transform, MobType = mobType });
+        }
+
+        /// <summary>
+        /// Minecraft's arrow model: two crossed planes for the shaft and fletching plus the small back cross, from
+        /// entity/projectiles/arrow.png (32x32). 16 pixels long; points along +Z.
+        /// </summary>
+        private static Mesh ArrowMesh()
+        {
+            var mb = new MeshBuilder();
+            const float L = 0.7f, s = L / 16f;
+            float h = 2.5f * s;
+            Rect side = MeshBuilder.PxRect(0, 0, 16, 5, 32, 32);
+            Rect sideFlip = MeshBuilder.PxRect(0, 0, 16, 5, 32, 32, true);
+            Rect back = MeshBuilder.PxRect(0, 5, 5, 5, 32, 32);
+            // vertical plane (both sides)
+            mb.Quad(new Vector3(0, -h, -L / 2), new Vector3(0, -h, L / 2), new Vector3(0, h, L / 2), new Vector3(0, h, -L / 2), side);
+            mb.Quad(new Vector3(0, -h, L / 2), new Vector3(0, -h, -L / 2), new Vector3(0, h, -L / 2), new Vector3(0, h, L / 2), sideFlip);
+            // horizontal plane (both sides)
+            mb.Quad(new Vector3(-h, 0, -L / 2), new Vector3(-h, 0, L / 2), new Vector3(h, 0, L / 2), new Vector3(h, 0, -L / 2), side);
+            mb.Quad(new Vector3(-h, 0, L / 2), new Vector3(-h, 0, -L / 2), new Vector3(h, 0, -L / 2), new Vector3(h, 0, L / 2), sideFlip);
+            // back cross
+            float z = -L / 2 + 0.02f;
+            mb.Quad(new Vector3(-h, -h, z), new Vector3(h, -h, z), new Vector3(h, h, z), new Vector3(-h, h, z), back);
+            mb.Quad(new Vector3(h, -h, z), new Vector3(-h, -h, z), new Vector3(-h, h, z), new Vector3(h, h, z), back);
+            return mb.Build("mc_arrow");
         }
 
         public static void Tick()
@@ -121,6 +151,23 @@ namespace BlockPeak.Items
                     done = true;
                     hitPoint = hit.point;
                     hitNormal = hit.normal;
+                }
+                if (!done && s.Authority && s.Kind == ProjectileKind.PlayerArrow && s.Age > 0.03f)
+                {
+                    Vector3 seg = next - s.Pos;
+                    float dmg = Balance.F(Balance.ItemCfg("bow"), "damage", 6f) * s.Power * (s.Power >= 1f && Random.value < 0.25f ? 1.5f : 1f);
+                    if (MobDirector.LocalArrow(s.Pos, seg.normalized, seg.magnitude, dmg, s.Vel.normalized))
+                    {
+                        done = true;
+                        Sfx.At("random/bowhit", next, 0.8f);
+                    }
+                    else if (HitOtherPlayer(s.Pos, next, s.Owner, out var hitPlayer))
+                    {
+                        done = true;
+                        hitPoint = hitPlayer.Center;
+                        Channel.To(hitPlayer.photonView.Owner.ActorNumber, Op.ArrowHitPlayer, true, s.Power, s.Vel.normalized);
+                        Sfx.At("random/bowhit", hitPoint, 0.8f);
+                    }
                 }
                 if (!done && s.Authority && s.Kind == ProjectileKind.Arrow && HitCharacter(s.Pos, next, out var victim))
                 {
@@ -145,7 +192,7 @@ namespace BlockPeak.Items
                 if (s.View != null)
                 {
                     s.View.position = next;
-                    if (s.Kind == ProjectileKind.Arrow) { if (s.Vel.sqrMagnitude > 0.01f) s.View.rotation = Quaternion.LookRotation(s.Vel); }
+                    if (s.Kind == ProjectileKind.Arrow || s.Kind == ProjectileKind.PlayerArrow) { if (s.Vel.sqrMagnitude > 0.01f) s.View.rotation = Quaternion.LookRotation(s.Vel); }
                     else if (Game.Cam != null) s.View.rotation = Quaternion.LookRotation(next - Game.Cam.transform.position);
                 }
             }
@@ -161,6 +208,18 @@ namespace BlockPeak.Items
                 {
                     if (DistToSegment(p, a, b) < 0.45f) { victim = c; return true; }
                 }
+            }
+            return false;
+        }
+
+        private static bool HitOtherPlayer(Vector3 a, Vector3 b, int ownerActor, out Character victim)
+        {
+            victim = null;
+            foreach (var c in Character.AllCharacters)
+            {
+                if (c == null || c.data.dead || c.isBot || !c.IsPlayerControlled || c.photonView?.Owner == null || c.photonView.Owner.ActorNumber == ownerActor) continue;
+                foreach (var p in new[] { c.Center, c.Head, c.GetBodypart(BodypartType.Hip).transform.position })
+                    if (DistToSegment(p, a, b) < 0.45f) { victim = c; return true; }
             }
             return false;
         }

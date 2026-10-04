@@ -10,7 +10,7 @@ send `LogOutput.log` plus `BepInEx\config\BlockPeak\peak-items.txt`.
 | Problem | Try this |
 |---|---|
 | PEAK crashes or closes at start after installing | Make sure PEAK is up to date in Steam. In Steam → PEAK → Properties → Launch options add `-dx12`. Still crashing: setup → **Mods OFF**, check that PEAK starts vanilla, then report the log. |
-| Nothing changed in game | Did the game start through Steam with mods ON? The log should say `BlockPeak 0.2.0 starting`. If there is no `BepInEx\LogOutput.log` at all, BepInEx is not running: press Install / Update again. |
+| Nothing changed in game | Did the game start through Steam with mods ON? The log should say `BlockPeak 0.3.0 starting`. If there is no `BepInEx\LogOutput.log` at all, BepInEx is not running: press Install / Update again. |
 | Grey/purple checker textures instead of Minecraft ones | Minecraft 26.3 was not found. Start Minecraft 26.3 once in the Modrinth App, then setup → **Copy Minecraft textures**. If Minecraft is somewhere unusual, set `MinecraftPath` in the .cfg to the folder that contains `versions` and `assets` (for the Modrinth App: `%AppData%\ModrinthApp\meta`). |
 | No Minecraft sounds | Same as above; the launcher must have downloaded the sounds (start the game once). |
 | Minecraft items are invisible, black or pink | Set `ItemShaderOverride` in the .cfg (Debug section), e.g. `Universal Render Pipeline/Lit`, and restart. |
@@ -26,6 +26,9 @@ send `LogOutput.log` plus `BepInEx\config\BlockPeak\peak-items.txt`.
 | F6 or / does nothing | Debug mode is read when PEAK starts: setup → **Debug mode ON**, then restart PEAK. In multiplayer the host needs it too. |
 | My balance.json changes are gone after updating | Version 0.2.0 has new defaults, so your old file was saved as `balance.v1.backup.json` next to it. Copy your changes across. |
 | The BlockPeak check boxes are not in the Custom run window | They may show as a plain list on the left of the screen instead. They only work in a **Custom run**, and only the host's count. |
+| Minecraft clouds are at a strange height | Set `MinecraftCloudHeight` in the .cfg (Visuals section) to the height you want, or switch Minecraft clouds off in the setup. |
+| Some PEAK effect looks wrong with Minecraft particles | Switch **Minecraft particles and effects** off in the setup and tell us which effect it was. |
+| No Minecraft chests appear | They only appear in a **Custom run** with one of the "Minecraft: Chests" boxes ticked by the host, about 6 seconds after the run starts, next to luggage away from the start. |
 | Low FPS in Zombie Chase | Lower `modes.zombieChase.count` or `drawDistance` in balance.json (host). |
 | Something else is weird after a PEAK update | Set `SafeMode = true` in the .cfg to switch BlockPeak off without uninstalling, and check for a BlockPeak update. |
 

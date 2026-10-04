@@ -1,6 +1,6 @@
 {
   "_readme": "BlockPeak balance file. Edit numbers, save, restart PEAK. In multiplayer the HOST's file is used for everyone. Status amounts use PEAK units: 1.0 = the whole stamina bar, 0.025 = one tick. Weight units: 1 = one PEAK weight tick (2.5 on the bar).",
-  "version": 2,
+  "version": 3,
   "loot": {
     "minecraftShare": 0.15,
     "ancientShare": 0.2,
@@ -42,7 +42,6 @@
       "blocks": 20,
       "cookie": 10,
       "torch": 9,
-      "ladder": 8,
       "steak": 8,
       "tnt": 6,
       "goat_horn": 5,
@@ -55,7 +54,8 @@
       "elytra": 1.5,
       "enchanted_golden_apple": 1,
       "potion_swiftness": 4,
-      "potion_leaping": 4
+      "potion_leaping": 4,
+      "bow": 3
     },
     "multipliers": {
       "LuggageTundra": {
@@ -101,14 +101,6 @@
         "deepslate": 6
       }
     },
-    "ladder": {
-      "find": [
-        3,
-        8
-      ],
-      "stack": 16,
-      "weightPer": 3
-    },
     "torch": {
       "find": [
         2,
@@ -147,10 +139,10 @@
       ],
       "stack": 1,
       "weightEach": 2,
-      "glideSeconds": 52,
+      "glideSeconds": 45,
       "crashInjuryMin": 0.1,
       "crashInjuryMax": 0.4,
-      "startDurability": 0.12,
+      "startDurability": 1.0,
       "fireworks": 1,
       "fireworkSeconds": 1.5
     },
@@ -282,15 +274,31 @@
       "stack": 1,
       "weightEach": 1,
       "seconds": 25,
-      "jumpMultiplier": 1.6,
-      "eatSeconds": 1.2
+      "eatSeconds": 1.2,
+      "jumpExtraVelocity": 4.0
+    },
+    "bow": {
+      "find": [
+        1,
+        1
+      ],
+      "stack": 1,
+      "weightEach": 2,
+      "arrows": 16,
+      "drawSeconds": 1.0,
+      "arrowSpeed": 45,
+      "damage": 6,
+      "playerInjury": 0.08,
+      "knockDownSeconds": 1.5,
+      "knockback": 5,
+      "mobKnockDownSeconds": 2
     }
   },
   "building": {
     "reach": 4.5,
     "quickPlaceStamina": 0.1,
     "quickPlaceCooldown": 1.0,
-    "placedBlockLimit": 200,
+    "placedBlockLimit": 1000,
     "breakSeconds": 1.0,
     "ladderStaminaMultiplier": 0.5,
     "torchLightRange": 8.0,
@@ -435,7 +443,7 @@
       },
       "warden": {
         "health": 200,
-        "walkSpeed": 1.15,
+        "walkSpeed": 0.75,
         "sprints": false,
         "status": "Injury",
         "amount": 0.35,
@@ -453,7 +461,17 @@
       }
     },
     "scale": 0.9,
-    "heartsSeconds": 4.0
+    "heartsSeconds": 4.0,
+    "warden": {
+      "hearRange": 16,
+      "smellRange": 6,
+      "sniffSeconds": 5,
+      "angerPerVibration": 12,
+      "angerPerSniff": 35,
+      "angryAt": 80,
+      "angerDecayPerSecond": 1,
+      "digWhenFartherThan": 110
+    }
   },
   "templates": {
     "_readme": "Advanced: the PEAK items Minecraft items are cloned from (for hand positions). Empty = automatic. Names are listed in BepInEx/config/BlockPeak/peak-items.txt.",
@@ -493,9 +511,6 @@
     },
     "rain": {
       "firstDelay": 45,
-      "everyMin": 60,
-      "everyMax": 180,
-      "seconds": 12,
       "radius": 12,
       "height": 22,
       "maxAlive": 60,
@@ -512,7 +527,85 @@
       "tntMaxSeconds": 8,
       "tntRadius": 2.5,
       "tntInjury": 0.25,
-      "tntKnockback": 16
+      "tntKnockback": 16,
+      "everyMin": 90,
+      "everyMax": 240,
+      "secondsMin": 15,
+      "secondsMax": 30,
+      "gapBetweenRains": 45
+    },
+    "chests": {
+      "_comment": "Minecraft chests custom-run option. frequency = chance that a PEAK luggage gets a Minecraft chest next to it.",
+      "frequency": {
+        "rare": 0.08,
+        "normal": 0.16,
+        "common": 0.3
+      },
+      "kinds": {
+        "single": 60,
+        "double": 30,
+        "copper": 10
+      },
+      "items": {
+        "single": [
+          2,
+          3
+        ],
+        "double": [
+          4,
+          7
+        ],
+        "copper": [
+          1,
+          3
+        ]
+      },
+      "tiers": {
+        "common": [
+          "blocks",
+          "torch",
+          "cookie",
+          "steak"
+        ],
+        "uncommon": [
+          "tnt",
+          "golden_apple",
+          "wind_charge",
+          "goat_horn",
+          "stone_sword",
+          "potion_swiftness",
+          "potion_leaping",
+          "boat",
+          "bow"
+        ],
+        "rare": [
+          "ender_pearl",
+          "totem_of_undying",
+          "elytra",
+          "enchanted_golden_apple"
+        ]
+      },
+      "tierWeights": {
+        "single": {
+          "common": 70,
+          "uncommon": 30
+        },
+        "double": {
+          "common": 55,
+          "uncommon": 45
+        },
+        "copper": {
+          "rare": 80,
+          "uncommon": 20
+        }
+      }
     }
+  },
+  "visuals": {
+    "_comment": "Minecraft clouds (setup switch). Sizes in metres.",
+    "cloudCell": 12,
+    "cloudThickness": 4,
+    "cloudSpeed": 0.6,
+    "cloudHeightAboveStart": 260
   }
 }

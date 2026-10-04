@@ -36,7 +36,12 @@ namespace BlockPeak.Mobs
             Channel.On(Op.BodyHit, (a, s) =>
             {
                 if (!IsHost) return;
-                if (All.TryGetValue(Channel.Int(a[0]), out var m) && m != null) m.HostDamage(Channel.Flt(a[1]), Channel.Vec(a[2]));
+                if (All.TryGetValue(Channel.Int(a[0]), out var m) && m != null)
+                {
+                    m.HostDamage(Channel.Flt(a[1]), Channel.Vec(a[2]));
+                    float down = a.Length > 3 ? Channel.Flt(a[3]) : 0f;
+                    if (down > 0f && !m.Dying && m.C != null) m.C.Fall(down);
+                }
             });
             Channel.On(Op.BodyHurt, (a, s) =>
             {
@@ -199,7 +204,7 @@ namespace BlockPeak.Mobs
         // ------------------------------------------------------------------ combat helpers
 
         /// <summary>Local player swings: hit the body mob in front. True if one was in reach.</summary>
-        public static bool LocalMelee(Vector3 origin, Vector3 dir, float reach, float damage)
+        public static bool LocalMelee(Vector3 origin, Vector3 dir, float reach, float damage, float knockDown = 0f)
         {
             BodyMob best = null;
             float bestD = reach + 0.01f;
@@ -217,7 +222,7 @@ namespace BlockPeak.Mobs
                 }
             }
             if (best == null) return false;
-            Channel.Host(Op.BodyHit, best.ViewId, damage, dir);
+            Channel.Host(Op.BodyHit, best.ViewId, damage, dir, knockDown);
             return true;
         }
 
@@ -231,6 +236,14 @@ namespace BlockPeak.Mobs
                 if (d > radius * 1.6f) continue;
                 m.HostDamage(20f * (1f - d / (radius * 1.6f)), (m.Position - at).normalized * 1.5f);
             }
+        }
+
+        /// <summary>Host: a vibration the warden can hear (explosions, blocks, horns, landings...).</summary>
+        public static void HostVibration(Vector3 at, float strength)
+        {
+            if (!IsHost) return;
+            foreach (var m in All.Values)
+                if (m != null && !m.Dying && m.Type == "warden") m.HostHear(at, strength, null);
         }
 
         public static void HostPush(Vector3 at, float radius, float launch)

@@ -122,7 +122,7 @@ namespace BlockPeak.Building
                     break;
             }
             p.State = PlaceState.Ok;
-            int limit = Balance.I(B, "placedBlockLimit", 200);
+            int limit = Balance.I(B, "placedBlockLimit", 1000);
             if (byCell.ContainsKey(p.Cell)) { p.State = PlaceState.Blocked; }
             else if (BlocksCharacter(p.Cell, def)) { p.State = PlaceState.Blocked; }
             else if (Count >= limit) { p.State = PlaceState.Blocked; p.Why = $"Block limit reached ({limit}). Break some blocks first."; }
@@ -216,7 +216,7 @@ namespace BlockPeak.Building
             Vector3Int cell = CellAt(feet + wallN * Size * 0.5f - Vector3.up * Size * 0.6f);
             if (byCell.ContainsKey(cell)) cell += Vector3Int.down;
             if (byCell.ContainsKey(cell)) return;
-            if (Count >= Balance.I(B, "placedBlockLimit", 200)) { Banner.Toast("Block limit reached."); return; }
+            if (Count >= Balance.I(B, "placedBlockLimit", 1000)) { Banner.Toast("Block limit reached."); return; }
             lastQuickPlace = Time.time;
             c.UseStamina(Balance.F(B, "quickPlaceStamina", 0.1f));
             var def = ItemDefs.ById(slot.prefab.itemID);
@@ -235,13 +235,13 @@ namespace BlockPeak.Building
             int fromSlot = a.Length > 3 ? Channel.Int(a[3]) : -1;
             Vector3 surface = a.Length > 4 ? Channel.Vec(a[4]) : Vector3.zero;
             var def = ItemDefs.ByKey(key);
-            if (def == null || byCell.ContainsKey(cell) || Count >= Balance.I(B, "placedBlockLimit", 200)) return;
+            if (def == null || byCell.ContainsKey(cell) || Count >= Balance.I(B, "placedBlockLimit", 1000)) return;
 
             if (fromSlot >= 0 && !TakeFromSlot(sender, (byte)fromSlot, def)) return;
 
             int id = nextId++;
             Channel.All(Op.BlockPlaced, true, id, (Vector3)cell, key, facing, surface);
-            if (def.Kind == McKind.Ladder) LadderRopes.HostRebuild(cell, facing);
+            Mobs.BodyMobs.HostVibration(CellCenter(cell), 1f);
         }
 
         /// <summary>Host: take one item from a player's hotbar slot (quick-place) and sync their inventory.</summary>
@@ -277,12 +277,8 @@ namespace BlockPeak.Building
             int id = Channel.Int(a[0]);
             if (!byId.TryGetValue(id, out var r) || r.Lit) return;
             Channel.All(Op.BlockBroken, true, id, true);
+            Mobs.BodyMobs.HostVibration(CellCenter(r.Cell), 1f);
             DropItem(r);
-            if (r.Key == "ladder")
-            {
-                LadderRopes.HostRebuild(r.Cell + Vector3Int.up, r.Facing);
-                LadderRopes.HostRebuild(r.Cell + Vector3Int.down, r.Facing);
-            }
         }
 
         private static void DropItem(Record r)
@@ -330,7 +326,6 @@ namespace BlockPeak.Building
                 if (d > radius) continue;
                 if (r.Key == "tnt") { Ignite(r.Id, UnityEngine.Random.Range(0.5f, 1.5f)); continue; }
                 Channel.All(Op.BlockBroken, true, r.Id, false);
-                if (r.Key == "ladder") { LadderRopes.HostRebuild(r.Cell + Vector3Int.up, r.Facing); LadderRopes.HostRebuild(r.Cell + Vector3Int.down, r.Facing); }
             }
             Mobs.MobDirector.HostExplosion(at, radius);
         }
@@ -435,7 +430,6 @@ namespace BlockPeak.Building
         {
             if (!IsAuthority) return;
             foreach (var r in byId.Values.ToList()) Channel.All(Op.BlockBroken, true, r.Id, false);
-            LadderRopes.HostDestroyAll();
         }
 
         public static Record At(Vector3Int cell) => byCell.TryGetValue(cell, out var r) ? r : null;

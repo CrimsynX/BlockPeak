@@ -23,32 +23,77 @@ namespace BlockPeak.Items
             EndJumpBoost();
         }
 
-        // ---- jump boost (potion of leaping): scales PEAK's own jump impulse for a while
-        private static float jumpUntil;
-        private static float savedImpulse = -1f;
-        private static CharacterMovement boosted;
+        // ---- jump boost (potion of leaping): an extra upward push right after PEAK's own jump.
+        //      (Scaling PEAK's jump impulse did nothing noticeable, so the boost is added on top.)
+        private static float jumpUntil, jumpExtra;
+        private static float lastSinceJump = 10f, pushAt = -1f;
+        public static float SpeedUntil, SpeedSeconds = 1f, JumpSeconds = 1f;
 
         public static float JumpBoostLeft => Mathf.Max(0f, jumpUntil - Time.time);
 
-        public static void StartJumpBoost(Character c, float multiplier, float seconds)
+        public static void StartJumpBoost(Character c, float extraVelocity, float seconds)
         {
-            var mv = c.refs.movement;
-            if (boosted != mv) { EndJumpBoost(); boosted = mv; savedImpulse = mv.jumpImpulse; }
-            mv.jumpImpulse = savedImpulse * multiplier;
+            jumpExtra = extraVelocity;
             jumpUntil = Time.time + seconds;
+            JumpSeconds = seconds;
+        }
+
+        public static void StartSpeed(float seconds)
+        {
+            SpeedUntil = Time.time + seconds;
+            SpeedSeconds = seconds;
         }
 
         public static void Tick()
         {
-            if (boosted != null && Time.time > jumpUntil) EndJumpBoost();
+            var c = Game.LocalChar;
+            if (c == null) { pushAt = -1f; return; }
+            // A real jump resets sinceJump (JumpRpc; the jetpack doesn't). PEAK pushes 0.1 s later, ours right after.
+            float sj = c.data.sinceJump;
+            if (sj < 0.05f && lastSinceJump > 0.2f && Time.time < jumpUntil) pushAt = Time.time + 0.12f;
+            lastSinceJump = sj;
+            if (pushAt > 0f && Time.time >= pushAt)
+            {
+                pushAt = -1f;
+                if (!c.data.isClimbing && !c.data.isRopeClimbing) c.AddForce(Vector3.up * (jumpExtra / Time.fixedDeltaTime), 1f, 1f);
+            }
         }
 
         private static void EndJumpBoost()
         {
-            if (boosted != null && savedImpulse > 0f) boosted.jumpImpulse = savedImpulse;
-            boosted = null;
-            savedImpulse = -1f;
             jumpUntil = 0f;
+            SpeedUntil = 0f;
+        }
+
+        // ---- Minecraft's effect icons (top right) while a potion is active
+        private static Texture2D effectBg;
+
+        public static void Draw()
+        {
+            if (Game.LocalChar == null) return;
+            int scale = Mathf.Max(2, Screen.height / 360);
+            float x = Screen.width - 8 * scale;
+            float y = 8 * scale;
+            DrawEffect(ref x, y, scale, "mob_effect/speed.png", SpeedUntil - Time.time, SpeedSeconds);
+            DrawEffect(ref x, y, scale, "mob_effect/jump_boost.png", jumpUntil - Time.time, JumpSeconds);
+        }
+
+        private static void DrawEffect(ref float x, float y, int scale, string icon, float left, float total)
+        {
+            if (left <= 0f) return;
+            if (effectBg == null) effectBg = McAssets.Tex("gui/sprites/hud/effect_background.png");
+            x -= 24 * scale;
+            // Minecraft fades the icon in and out during the last 10 seconds.
+            float alpha = left > 10f ? 1f : 0.5f + 0.5f * Mathf.Abs(Mathf.Cos(left * Mathf.PI * 0.5f));
+            var old = GUI.color;
+            GUI.DrawTexture(new Rect(x, y, 24 * scale, 24 * scale), effectBg);
+            GUI.color = new Color(1f, 1f, 1f, alpha);
+            GUI.DrawTexture(new Rect(x + 3 * scale, y + 3 * scale, 18 * scale, 18 * scale), McAssets.Tex(icon));
+            GUI.color = old;
+            int secs = Mathf.CeilToInt(left);
+            var txt = McFont.Render(secs / 60 + ":" + (secs % 60).ToString("00"), Color.white);
+            if (txt != null) GUI.DrawTexture(new Rect(x + 12 * scale - txt.width * scale / 4f, y + 25 * scale, txt.width * scale / 2f, txt.height * scale / 2f), txt);
+            x -= 2 * scale;
         }
 
         public static void RegisterNet()

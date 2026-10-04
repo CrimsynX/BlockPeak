@@ -106,8 +106,23 @@ namespace BlockPeak.Assets
             if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.1f);
             if (m.HasProperty("_Glossiness")) m.SetFloat("_Glossiness", 0.1f);
             if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", 0f);
+            Cutout(m);
             if (tex != null) cache[tex] = m;
             return m;
+        }
+
+        /// <summary>
+        /// Alpha cut-out: transparent pixels of Minecraft textures (skeleton ribs, boat and chest gaps, empty texture
+        /// areas) are not drawn instead of showing up black.
+        /// </summary>
+        public static void Cutout(Material m)
+        {
+            if (m == null) return;
+            if (m.HasProperty("_AlphaClip")) m.SetFloat("_AlphaClip", 1f);
+            if (m.HasProperty("_Cutoff")) m.SetFloat("_Cutoff", 0.5f);
+            m.EnableKeyword("_ALPHATEST_ON");
+            m.SetOverrideTag("RenderType", "TransparentCutout");
+            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
         }
 
         /// <summary>Same as <see cref="For"/> but glowing (torch flames, magma cubes, lit TNT).</summary>

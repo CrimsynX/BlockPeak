@@ -40,7 +40,17 @@ namespace BlockPeak.Modes
         public static readonly Option TntRain = new Option { Key = "tnt_rain", Label = "Minecraft: TNT rain", Help = "Now and then it rains lit TNT." };
         public static readonly Option StarterKit = new Option { Key = "starter_kit", Label = "Minecraft: Starter kit", Help = "Every scout starts with blocks, torches, cookies and an ender pearl." };
 
-        public static readonly List<Option> All = new List<Option> { WardenChase, ZombieChase, McItemsOnly, AnvilRain, TntRain, StarterKit };
+        public static readonly Option ChestsRare = new Option { Key = "chests_rare", Label = "Minecraft: Chests (rare)", Help = "Minecraft items only come from Minecraft chests scattered over the map. Few chests." };
+        public static readonly Option ChestsNormal = new Option { Key = "chests_normal", Label = "Minecraft: Chests (normal)", Help = "Minecraft items only come from Minecraft chests scattered over the map." };
+        public static readonly Option ChestsCommon = new Option { Key = "chests_common", Label = "Minecraft: Chests (common)", Help = "Minecraft items only come from Minecraft chests scattered over the map. Lots of chests." };
+
+        public static readonly List<Option> All = new List<Option> { WardenChase, ZombieChase, McItemsOnly, ChestsRare, ChestsNormal, ChestsCommon, AnvilRain, TntRain, StarterKit };
+
+        private static readonly Option[] ChestOptions = { ChestsRare, ChestsNormal, ChestsCommon };
+
+        /// <summary>Minecraft chests in this run: null = off, else "rare" / "normal" / "common".</summary>
+        public static string ChestFrequency =>
+            On(ChestsCommon) ? "common" : On(ChestsNormal) ? "normal" : On(ChestsRare) ? "rare" : null;
 
         /// <summary>Is this option in effect for the current run (custom run + ticked)?</summary>
         public static bool On(Option o) => o.Value && (RunSettings.IsCustomRun || Cfg.Debug && Balance.B(Balance.Section("modes"), "debugIgnoresCustomRun", false));
@@ -51,6 +61,9 @@ namespace BlockPeak.Modes
             // The two chase modes are exclusive.
             if (v && o == WardenChase) ZombieChase.Value = false;
             if (v && o == ZombieChase) WardenChase.Value = false;
+            // One chest amount at a time, and chests and "only Minecraft items" exclude each other.
+            if (v && ChestOptions.Contains(o)) { foreach (var c in ChestOptions) if (c != o) c.Value = false; McItemsOnly.Value = false; }
+            if (v && o == McItemsOnly) foreach (var c in ChestOptions) c.Value = false;
             foreach (var t in toggles) if (t.Value != null) t.Value.SetIsOnWithoutNotify(t.Key.Value);
         }
 

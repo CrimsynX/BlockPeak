@@ -313,27 +313,88 @@ namespace BlockPeak.Building
             var v = go.AddComponent<BoatView>();
             v.Boat = b;
             var tex = McAssets.Tex("entity/boat/oak.png");
-            var mb = new MeshBuilder();
+            var mat = Mat.For(tex);
+            var model = new GameObject("model").transform;
+            model.SetParent(go.transform, false);
+            float sc = BlockWorld.Size * 0.85f;
+            model.localScale = Vector3.one * sc;
+            model.localPosition = new Vector3(0, 6f / 16f * sc, 0);   // Minecraft draws the boat 6px up
+            model.localRotation = Quaternion.Euler(0, 90f, 0);         // Minecraft boats point along x
             const float W = 128, H = 64;
-            // Minecraft BoatModel parts (approximated as axis-aligned boxes): bottom and four walls.
-            mb.McBox(-14, 21, -8, 28, 3, 16, 0, 0, W, H);       // bottom
-            mb.McBox(-15, 15, -9, 30, 6, 2, 0, 35, W, H);       // right side
-            mb.McBox(-15, 15, 7, 30, 6, 2, 0, 43, W, H);        // left side
-            mb.McBox(-15, 15, -7, 2, 6, 14, 0, 19, W, H);       // back
-            mb.McBox(13, 15, -7, 2, 6, 14, 0, 27, W, H);        // front
-            var model = new GameObject("model");
-            model.transform.SetParent(go.transform, false);
-            model.transform.localScale = Vector3.one * (BlockWorld.Size * 0.85f);
-            model.transform.localPosition = new Vector3(0, 24f / 16f * BlockWorld.Size * 0.85f, 0); // McBox puts y=24 at 0
-            model.transform.localRotation = Quaternion.Euler(0, 90f, 0); // Minecraft boats point along x
-            model.AddComponent<MeshFilter>().sharedMesh = mb.Build("mc_boat");
-            model.AddComponent<MeshRenderer>().sharedMaterial = Mat.For(tex);
+            const float PI = Mathf.PI;
+            // Minecraft 26.x BoatModel: parts with their pivots and rotations (radians, applied Z, Y, X).
+            McPart(model, "bottom", 0, 3, 1, PI / 2, 0, 0, mat, b => b.McBox(-14, -9, -3, 28, 16, 3, 0, 0, W, H));
+            McPart(model, "back", -15, 4, 4, 0, 3 * PI / 2, 0, mat, b => b.McBox(-13, -7, -1, 18, 6, 2, 0, 19, W, H));
+            McPart(model, "front", 15, 4, 0, 0, PI / 2, 0, mat, b => b.McBox(-8, -7, -1, 16, 6, 2, 0, 27, W, H));
+            McPart(model, "right", 0, 4, -9, 0, PI, 0, mat, b => b.McBox(-14, -7, -1, 28, 6, 2, 0, 35, W, H));
+            McPart(model, "left", 0, 4, 9, 0, 0, 0, mat, b => b.McBox(-14, -7, -1, 28, 6, 2, 0, 43, W, H));
+            v.paddleL = McPart(model, "paddleL", 3, -5, 9, 0, 0, PI / 16, mat, b =>
+            {
+                b.McBox(-1, 0, -5, 2, 2, 18, 62, 0, W, H);
+                b.McBox(-1.001f, -3, 8, 1, 6, 7, 62, 0, W, H);
+            });
+            v.paddleR = McPart(model, "paddleR", 3, -5, -9, 0, PI, PI / 16, mat, b =>
+            {
+                b.McBox(-1, 0, -5, 2, 2, 18, 62, 20, W, H);
+                b.McBox(0.001f, -3, 8, 1, 6, 7, 62, 20, W, H);
+            });
+            v.SetPaddles(0f);
             var box = go.AddComponent<BoxCollider>();
             box.isTrigger = true;
             box.center = new Vector3(0, 0.3f, 0);
             box.size = new Vector3(1.1f, 0.7f, 1.8f);
             v.Apply();
             return v;
+        }
+
+        private Transform paddleL, paddleR;
+        private float rowTime;
+        private Vector3 lastPos;
+
+        /// <summary>A Minecraft model part: pivot in model pixels (y down), rotation in radians applied Z, Y, X.</summary>
+        private static Transform McPart(Transform parent, string name, float px, float py, float pz, float rx, float ry, float rz, Material mat, System.Action<MeshBuilder> boxes)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = new Vector3(-px / 16f, -py / 16f, -pz / 16f);
+            go.transform.localRotation = McRot(rx, ry, rz);
+            var mb = new MeshBuilder();
+            boxes(mb);
+            go.AddComponent<MeshFilter>().sharedMesh = mb.Build("mc_boat_" + name);
+            go.AddComponent<MeshRenderer>().sharedMaterial = mat;
+            return go.transform;
+        }
+
+        // Minecraft's model space maps to ours by a point flip (x, y, z all negated), which keeps rotation matrices
+        // the same, so the angles can be used as they are.
+        private static Quaternion McRot(float rx, float ry, float rz) =>
+            Quaternion.AngleAxis(rz * Mathf.Rad2Deg, Vector3.forward) * Quaternion.AngleAxis(ry * Mathf.Rad2Deg, Vector3.up) * Quaternion.AngleAxis(rx * Mathf.Rad2Deg, Vector3.right);
+
+        /// <summary>Minecraft's paddle swing (BoatModel.animatePaddle).</summary>
+        public void SetPaddles(float t)
+        {
+            Paddle(paddleL, t, false);
+            Paddle(paddleR, t, true);
+        }
+
+        private static void Paddle(Transform p, float t, bool right)
+        {
+            if (p == null) return;
+            float x = Mathf.Lerp(-PI3, -PI12, (Mathf.Sin(-t) + 1f) / 2f);
+            float y = Mathf.Lerp(-PI4, PI4, (Mathf.Sin(-t + 1f) + 1f) / 2f);
+            if (right) y = Mathf.PI - y;
+            p.localRotation = McRot(x, y, Mathf.PI / 16f);
+        }
+
+        private const float PI3 = Mathf.PI / 3f, PI4 = Mathf.PI / 4f, PI12 = Mathf.PI / 12f;
+
+        private void Update()
+        {
+            // Row while someone drives it.
+            Vector3 d = transform.position - lastPos;
+            lastPos = transform.position;
+            float speed = new Vector2(d.x, d.z).magnitude / Mathf.Max(Time.deltaTime, 1e-4f);
+            if (Boat != null && Boat.Rider >= 0 && speed > 0.3f) { rowTime += Time.deltaTime * 8f; SetPaddles(rowTime); }
         }
 
         public void Apply()

@@ -3,7 +3,7 @@
 `PEAK\BepInEx\config\BlockPeak\balance.json` is created on first start from `config/balance.json` in this repo.
 Edit, save, restart PEAK. Missing keys fall back to the defaults, so it is safe to delete lines. When a new
 BlockPeak version changes the defaults (the `version` number at the top), your old file is saved as
-`balance.v1.backup.json` and the new default is written. In multiplayer the
+`balance.v<old number>.backup.json` and the new default is written. In multiplayer the
 **host's** file is used by everyone (the host shares it through the lobby).
 
 Units are PEAK's: status amounts go from 0 to 1 where 1.0 is the whole stamina bar and 0.025 is one tick.
@@ -38,10 +38,11 @@ Weight: `weightPer: N` = one weight unit per N items (rounded up), `weightEach: 
 | blocks | `blockWeights`: blocks per weight unit for each block type (higher = lighter) |
 | tnt | `fuseSeconds`, `radius`, `injury` (at the centre), `knockback` |
 | ender_pearl | `injury`, `throwBoost` |
-| elytra | `startDurability` (0.12 = 12%), `glideSeconds` (flight time at that durability), `crashInjuryMin/Max`, `fireworks` (boosts per elytra), `fireworkSeconds` |
+| bow | `arrows`, `drawSeconds`, `arrowSpeed`, `damage` (mob health points at full draw), `playerInjury`, `knockDownSeconds`, `knockback`, `mobKnockDownSeconds` |
+| elytra | `startDurability` (1 = full), `glideSeconds` (flight time from full durability), `crashInjuryMin/Max`, `fireworks` (boosts per elytra), `fireworkSeconds` |
 | boat | `waterSpeed`, `snowSpeed`, `landSpeed` |
 | potion_swiftness | `seconds`, `moveSpeed`, `climbSpeed` (0.35 = 35% faster) |
-| potion_leaping | `seconds`, `jumpMultiplier` |
+| potion_leaping | `seconds`, `jumpExtraVelocity` (extra upward speed per jump, m/s) |
 | wind_charge | `launch` (speed you get thrown at), `radius` |
 | goat_horn | `cooldown`, `markerSeconds`, `scareSeconds` |
 | totem_of_undying | `invincibleSeconds`, `heatImmuneSeconds` |
@@ -81,7 +82,19 @@ Weight: `weightPer: N` = one weight unit per N items (rounded up), `weightEach: 
 | `zombieChase` | `count`, `zombieHealth`, `zombieSpeed`, `spawnMinDistance/MaxDistance`, `drawDistance` |
 | `starterKit` | Item key → how many (`blocks` = the beach block) |
 | `minecraftItemsOnly` | `startAreaRadius`, `keep` (PEAK items whose names contain these words are never swapped) |
-| `rain` | `everyMin/Max` (seconds between rains), `seconds` (rain length), `radius`, `height`, `maxAlive`, `anvilsPerSecond`, `anvilInjury`, `anvilLifeSeconds`, `tntPerSecond`, `tntFuseMin/Max`, `tntRadius`, `tntInjury`, `tntKnockback` (all per scout) |
+| `chests` | `frequency` (chance per luggage for rare/normal/common), `kinds` (single/double/copper weights), `items` (how many per chest), `tiers` (which items are common/uncommon/rare), `tierWeights` (which tiers each chest kind rolls) |
+| `rain` | `everyMin/Max` (seconds between rains), `secondsMin/Max` (rain length), `gapBetweenRains`, `radius`, `height`, `maxAlive`, `anvilsPerSecond`, `anvilInjury`, `anvilLifeSeconds`, `tntPerSecond`, `tntFuseMin/Max`, `tntRadius`, `tntInjury`, `tntKnockback` (all per scout) |
+
+### mobs.warden
+
+`hearRange` (m), `smellRange` (m, sideways), `sniffSeconds`, `angerPerVibration`, `angerPerSniff`, `angryAt`
+(anger needed to hunt, Minecraft uses 80), `angerDecayPerSecond`, `digWhenFartherThan` (Warden Chase: digs over to
+the scouts when they are this far away for 20 s).
+
+## visuals
+
+Minecraft clouds: `cloudCell` (size of one cloud pixel, m), `cloudThickness`, `cloudSpeed`, `cloudHeightAboveStart`
+(used when PEAK's own clouds can't be found; `MinecraftCloudHeight` in the .cfg overrides it).
 
 ## templates (advanced)
 

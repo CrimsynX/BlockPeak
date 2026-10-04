@@ -31,12 +31,14 @@ namespace BlockPeak.Core
         private void Start()
         {
             Health.Guard("assets", () => McAssets.Begin(this));
+            Health.Guard("mc-visuals", McVisuals.Init);
             Health.Guard("net", () =>
             {
                 BlockWorld.RegisterNet();
                 McMobs.RegisterNet();
                 BodyMobs.RegisterNet();
                 Projectiles.RegisterNet();
+                McBow.RegisterNet();
                 LocalEffects.RegisterNet();
                 Elytra.RegisterNet();
                 Boats.RegisterNet();
@@ -44,6 +46,7 @@ namespace BlockPeak.Core
                 Commands.RegisterNet();
                 GameModes.RegisterNet();
                 Rains.RegisterNet();
+                Chests.RegisterNet();
             });
         }
 
@@ -61,7 +64,6 @@ namespace BlockPeak.Core
                 BlockWorld.TickQuickPlace();
                 BlockWorld.TickWarmth();
                 PlacementPreview.Tick();
-                LadderRopes.TickVisuals();
             });
             Health.Guard("mobs", () =>
             {
@@ -78,7 +80,9 @@ namespace BlockPeak.Core
             Health.Guard("creative", Creative.Tick);
             Health.Guard("elytra", Elytra.Tick);
             Health.Guard("boats", Boats.Tick);
+            Health.Guard("mc-visuals", McVisuals.Tick);
             Health.Guard("modes", GameModes.Tick);
+            Health.Guard("chests", Chests.TickHost);
         }
 
         private void FixedUpdate()
@@ -99,6 +103,7 @@ namespace BlockPeak.Core
             Health.Guard("test-menu-draw", TestMenu.Draw);
             Health.Guard("chat-draw", ChatBox.Draw);
             Health.Guard("modes-draw", GameModes.Draw);
+            Health.Guard("effects-draw", LocalEffects.Draw);
             Health.Guard("options-draw", CustomOptions.Draw);
         }
 
@@ -109,7 +114,6 @@ namespace BlockPeak.Core
             Health.Verbose($"Scene {lastScene} -> {scene}");
             lastScene = scene;
             BlockWorld.Clear();
-            LadderRopes.Clear();
             Elytra.Clear();
             Boats.Clear();
             McMobs.Clear();
@@ -117,6 +121,7 @@ namespace BlockPeak.Core
             Projectiles.Clear();
             Fx.Clear();
             Rains.Clear();
+            Chests.Clear();
             LocalEffects.Reset();
             McChests.Reset();
             if (scene != "Airport" && !scene.ToLowerInvariant().Contains("title") && !scene.ToLowerInvariant().Contains("menu")) Loot.ResetRun();

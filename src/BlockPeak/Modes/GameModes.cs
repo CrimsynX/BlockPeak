@@ -175,7 +175,8 @@ namespace BlockPeak.Modes
                     ItemInstanceDataHandler.AddInstanceData(data);
                     int n = Mathf.Clamp((int)prop.Value, 1, def.Stack);
                     if (def.Stack > 1) Stacks.SetCount(data, n, def.Stack);
-                    if (def.Kind == McKind.Elytra) Stacks.SetDurability(data, Balance.F(def.Cfg, "startDurability", 0.12f));
+                    if (def.Kind == McKind.Elytra) Stacks.SetDurability(data, Balance.F(def.Cfg, "startDurability", 1f));
+                    if (def.Kind == McKind.Bow) Stacks.SetArrows(data, Balance.I(def.Cfg, "arrows", 16));
                     Stacks.MarkRolled(data);
                     try { p.AddItem(def.Id, data, out _); } catch (Exception e) { Health.Report("starter-kit", e); }
                 }

@@ -42,8 +42,16 @@ namespace BlockPeak.Mobs
             return McMobs.LocalMelee(origin, dir, reach, damage);
         }
 
+        /// <summary>Local player's arrow flying from a along dir for len metres: hurts and knocks over the first mob.</summary>
+        public static bool LocalArrow(Vector3 a, Vector3 dir, float len, float damage, Vector3 flight)
+        {
+            if (BodyMobs.LocalMelee(a, dir, len, damage, Balance.F(Balance.ItemCfg("bow"), "mobKnockDownSeconds", 2f))) return true;
+            return McMobs.LocalMelee(a, dir, len, damage);
+        }
+
         public static void HostExplosion(Vector3 at, float radius)
         {
+            BodyMobs.HostVibration(at, 3f);
             McMobs.HostExplosion(at, radius);
             BodyMobs.HostExplosion(at, radius);
         }
@@ -56,6 +64,7 @@ namespace BlockPeak.Mobs
 
         public static void Scare(Vector3 at, float radius, float seconds)
         {
+            BodyMobs.HostVibration(at, 2.5f);
             McMobs.Scare(at, radius, seconds);
             BodyMobs.Scare(at, radius, seconds);
         }

@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.3.0
+
+New
+- **Minecraft chests** custom-run option (rare / normal / common): Minecraft items only come from chests placed
+  next to PEAK's luggage. Chest, large chest and copper chest; items have rarity tiers and copper chests hold the
+  powerful ones.
+- **Bow** with 16 arrows: hold Use to draw, let go to shoot. A hit knocks any scout or mob over (scouts let go of
+  the wall).
+- Setup: on/off **pill switches** for Mods, Debug mode, **Minecraft particles and effects** and **Minecraft clouds**.
+- Potion effect icons (Minecraft's) with time left, top right.
+
+Changed
+- **Warden** works like Minecraft's: blind, hears vibrations (crouch to sneak), smells nearby scouts (sideways
+  distance only), gets angrier, roars, then hunts as fast as a scout runs and climbs. Arms hang and swing instead of a
+  T-pose. Head tendrils, glowing heart and spots that pulse faster when it's angry.
+- Elytra is found at full durability and lasts about 45 s of gliding; both durability bars match.
+- Sword is held in the right hand only, blade angled like Minecraft.
+- Boat rebuilt from Minecraft 26.x's boat model, with paddles that row while you steer.
+- Anvil and TNT rain: longer (15–30 s), random timing and strength, never both at once.
+- Block limit raised from 200 to 1000 (new setting `MaxPlacedBlocks`).
+
+Fixed
+- Black parts on mobs, the boat and other models (transparent texture pixels are now see-through; zombies and husks
+  use the right arm/leg texture).
+- Potion of leaping now really makes you jump higher.
+
+Removed
+- Ladder.
+
+Not yet play-tested.
+
 ## 0.2.0
 
 New

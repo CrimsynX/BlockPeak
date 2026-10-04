@@ -12,6 +12,17 @@ namespace BlockPeak.Items
         public const DataEntryKey DurabilityKey = (DataEntryKey)202; // FloatItemData: 0..1 (elytra)
         public const DataEntryKey CooldownKey = (DataEntryKey)203;   // FloatItemData: (unused for now)
         public const DataEntryKey FireworksKey = (DataEntryKey)204;  // IntItemData: elytra firework boosts used
+        public const DataEntryKey ArrowsKey = (DataEntryKey)205;     // IntItemData: arrows left in a bow (+1, 0 = not set)
+
+        public static int Arrows(ItemInstanceData data, int fallback) =>
+            data != null && data.TryGetDataEntry<IntItemData>(ArrowsKey, out var v) && v.Value > 0 ? v.Value - 1 : fallback;
+
+        public static void SetArrows(ItemInstanceData data, int arrows)
+        {
+            if (data == null) return;
+            if (!data.TryGetDataEntry<IntItemData>(ArrowsKey, out var v)) v = data.RegisterNewEntry<IntItemData>(ArrowsKey);
+            v.Value = Mathf.Max(0, arrows) + 1;
+        }
 
         public static int Count(ItemInstanceData data)
         {

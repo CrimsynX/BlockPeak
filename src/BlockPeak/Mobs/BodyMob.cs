@@ -18,7 +18,7 @@ namespace BlockPeak.Mobs
     /// body's bones every frame (so PEAK's walk/run/climb/fall animations drive them), shows hearts when hurt.
     /// Host: the brain (chase, climb, shoot, explode, hop), health and despawning.
     /// </summary>
-    public class BodyMob : MonoBehaviour
+    public partial class BodyMob : MonoBehaviour
     {
         public string Type;
         public JToken Cfg;
@@ -141,8 +141,25 @@ namespace BlockPeak.Mobs
                 Vector3 look = C.data.lookDirection.sqrMagnitude > 0.01f ? C.data.lookDirection.normalized : fwd;
                 Quaternion headRot = Quaternion.LookRotation(Vector3.Slerp(fwd, look, 0.7f), up);
                 Place(Model.Head, neck, headRot, partScale);
-                Limb(Model.ArmR, neck + right * (Model.ShoulderX * s) - up * (Model.ShoulderDrop * s), Bone(BodypartType.Arm_R), Bone(BodypartType.Hand_R), fwd, up, partScale);
-                Limb(Model.ArmL, neck - right * (Model.ShoulderX * s) - up * (Model.ShoulderDrop * s), Bone(BodypartType.Arm_L), Bone(BodypartType.Hand_L), fwd, up, partScale);
+                Vector3 shoulderR = neck + right * (Model.ShoulderX * s) - up * (Model.ShoulderDrop * s);
+                Vector3 shoulderL = neck - right * (Model.ShoulderX * s) - up * (Model.ShoulderDrop * s);
+                if (Model.Kind == "warden")
+                {
+                    // PEAK's zombie reaches forward while chasing; the warden's long arms hang and swing with its steps.
+                    float swing = SignedSwing(legR, footR, right, up) * 0.8f;
+                    float attack = Time.time < attackAnimUntil ? Mathf.Sin((attackAnimUntil - Time.time) / 0.5f * Mathf.PI) * 70f : 0f;
+                    Vector3 dR = Quaternion.AngleAxis(-swing - attack, right) * -up;
+                    Vector3 dL = Quaternion.AngleAxis(swing - attack, right) * -up;
+                    // Facing taken from the swing axis, so the arm never flips when it swings past horizontal.
+                    Place(Model.ArmR, shoulderR, Quaternion.LookRotation(Vector3.Cross(dR, right), -dR), partScale);
+                    Place(Model.ArmL, shoulderL, Quaternion.LookRotation(Vector3.Cross(dL, right), -dL), partScale);
+                    WardenLooks();
+                }
+                else
+                {
+                    Limb(Model.ArmR, shoulderR, Bone(BodypartType.Arm_R), Bone(BodypartType.Hand_R), fwd, up, partScale);
+                    Limb(Model.ArmL, shoulderL, Bone(BodypartType.Arm_L), Bone(BodypartType.Hand_L), fwd, up, partScale);
+                }
                 Limb(Model.LegR, hipCenter + right * (Model.HipX * s), legR, footR, fwd, up, partScale);
                 Limb(Model.LegL, hipCenter - right * (Model.HipX * s), legL, footL, fwd, up, partScale);
                 if (hearts != null) hearts.transform.position = neck + up * (Model.Kind == "warden" ? 18f * s : 10f * s);
@@ -275,7 +292,7 @@ namespace BlockPeak.Mobs
             hp -= dmg;
             Push(BodyMobs.Flat(dir) * Balance.F(Cfg, "knockbackTaken", 6f) + Vector3.up * 3f);
             Channel.All(Op.BodyHurt, false, ViewId, Mathf.Max(0f, hp) / maxHp);
-            if (Type == "warden" && target == null) target = BodyMobs.Players.OrderBy(p => (p.Center - Position).sqrMagnitude).FirstOrDefault();
+            if (Type == "warden") WardenHurt();
             if (hp <= 0f) HostDie(1);
         }
 
@@ -347,6 +364,7 @@ namespace BlockPeak.Mobs
             C.input.ResetInput();
             C.data.currentStamina = 1f;
             attackCd -= dt; shootCd -= dt; hopCd -= dt; sonicCd -= dt;
+            if (Type == "warden") { WardenBrain(dt); return; }
             bool night = Game.IsNight || BodyMobs.ForceNight || Modes.GameModes.Active != Modes.ModeKind.None;
 
             // Daylight
@@ -367,7 +385,7 @@ namespace BlockPeak.Mobs
 
             // Target
             retarget -= dt;
-            bool smells = Type == "warden" || Modes.GameModes.MobsAlwaysKnow;
+            bool smells = Modes.GameModes.MobsAlwaysKnow;
             bool neutral = !night && Balance.B(Cfg, "neutralAtDawn", false);
             if (retarget <= 0f || target == null || target.data.dead)
             {

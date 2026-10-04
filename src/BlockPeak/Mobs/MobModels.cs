@@ -18,6 +18,8 @@ namespace BlockPeak.Mobs
         public float Width = 0.6f;
         public string Kind; // humanoid, skeleton, warden, spider, creeper, slime, magma
         public Transform Inner;
+        public Transform TendrilR, TendrilL;
+        public Material Glow;            // warden: the bioluminescent layer (pulses)
         // Proportions in Minecraft pixels, used to hang the parts on PEAK's skeleton.
         public float LegPx = 12, BodyPx = 12, ShoulderX = 5, ShoulderDrop = 2, HipX = 1.9f;
         public bool FollowsBones => Kind == "humanoid" || Kind == "skeleton" || Kind == "warden";
@@ -97,7 +99,9 @@ namespace BlockPeak.Mobs
                     break;
                 default:
                     m.Kind = "humanoid";
-                    Humanoid(m, inner, mat, 64, 64, false);
+                    // Zombies and husks only have the right arm/leg in their texture (the left ones mirror it);
+                    // drowned use the player layout with separate left limbs.
+                    Humanoid(m, inner, mat, 64, 64, false, type == "drowned");
                     break;
             }
             if (m.Kind == "humanoid" || m.Kind == "skeleton") m.Height = 1.95f * scale;
@@ -122,7 +126,7 @@ namespace BlockPeak.Mobs
             return go.transform;
         }
 
-        private static void Humanoid(MobModel m, Transform root, Material mat, float tw, float th, bool thin)
+        private static void Humanoid(MobModel m, Transform root, Material mat, float tw, float th, bool thin, bool ownLeftLimbs = false)
         {
             m.Head = Part(m, root, "head", Pivot(0, 0, 0), mat, b => b.McBox(-4, -8, -4, 8, 8, 8, 0, 0, tw, th));
             m.Body = Part(m, root, "body", Pivot(0, 0, 0), mat, b => b.McBox(-4, 0, -2, 8, 12, 4, 16, 16, tw, th));
@@ -136,22 +140,101 @@ namespace BlockPeak.Mobs
             else
             {
                 m.ArmR = Part(m, root, "armR", Pivot(-5, 2, 0), mat, b => b.McBox(-3, -2, -2, 4, 12, 4, 40, 16, tw, th));
-                m.ArmL = Part(m, root, "armL", Pivot(5, 2, 0), mat, b => b.McBox(-1, -2, -2, 4, 12, 4, 32, 48, tw, th));
+                m.ArmL = Part(m, root, "armL", Pivot(5, 2, 0), mat, b =>
+                {
+                    if (ownLeftLimbs) b.McBox(-1, -2, -2, 4, 12, 4, 32, 48, tw, th);
+                    else b.McBox(-1, -2, -2, 4, 12, 4, 40, 16, tw, th, true);
+                });
                 m.LegR = Part(m, root, "legR", Pivot(-1.9f, 12, 0), mat, b => b.McBox(-2, 0, -2, 4, 12, 4, 0, 16, tw, th));
-                m.LegL = Part(m, root, "legL", Pivot(1.9f, 12, 0), mat, b => b.McBox(-2, 0, -2, 4, 12, 4, 16, 48, tw, th));
+                m.LegL = Part(m, root, "legL", Pivot(1.9f, 12, 0), mat, b =>
+                {
+                    if (ownLeftLimbs) b.McBox(-2, 0, -2, 4, 12, 4, 16, 48, tw, th);
+                    else b.McBox(-2, 0, -2, 4, 12, 4, 0, 16, tw, th, true);
+                });
             }
         }
 
-        /// <summary>Minecraft's WardenModel (128x128 texture); the flat tendrils and ribcage layers are left out.</summary>
+        /// <summary>
+        /// Minecraft's WardenModel (128x128 texture) with its flat ribcage and head tendrils, plus a second, glowing copy
+        /// of every part textured with the bioluminescent layer, heart and spots (pulses with the warden's heartbeat).
+        /// </summary>
         private static void Warden(MobModel m, Transform root, Material mat)
         {
             const float tw = 128, th = 128;
-            m.Body = Part(m, root, "body", Pivot(0, -10, 0), mat, b => b.McBox(-9, 0, -4, 18, 21, 11, 0, 0, tw, th));
+            m.Body = Part(m, root, "body", Pivot(0, -10, 0), mat, b =>
+            {
+                b.McBox(-9, 0, -4, 18, 21, 11, 0, 0, tw, th);
+                // ribcage plates on the chest (flat, 0 deep): body pivot is 13px above the ribcage pivots
+                b.McBox(-7 - 2 + 0, 13 - 2 - 11, -4 - 0.1f, 9, 21, 0, 90, 11, tw, th);
+                b.McBox(7 - 7, 13 - 2 - 11, -4 - 0.1f, 9, 21, 0, 90, 11, tw, th, true);
+            });
             m.Head = Part(m, root, "head", Pivot(0, -10, 0), mat, b => b.McBox(-8, -16, -5, 16, 16, 10, 0, 32, tw, th));
+            m.TendrilR = Part(m, m.Head, "tendrilR", Local(-8, -12, 0), mat, b => b.McBox(-16, -13, 0, 16, 16, 0, 52, 32, tw, th));
+            m.TendrilL = Part(m, m.Head, "tendrilL", Local(8, -12, 0), mat, b => b.McBox(0, -13, 0, 16, 16, 0, 58, 0, tw, th));
             m.ArmR = Part(m, root, "armR", Pivot(-13, -10, 1), mat, b => b.McBox(-4, 0, -4, 8, 28, 8, 44, 50, tw, th));
             m.ArmL = Part(m, root, "armL", Pivot(13, -10, 1), mat, b => b.McBox(-4, 0, -4, 8, 28, 8, 0, 58, tw, th));
             m.LegR = Part(m, root, "legR", Pivot(-5.9f, 11, 0), mat, b => b.McBox(-3.1f, 0, -3, 6, 13, 6, 76, 48, tw, th));
             m.LegL = Part(m, root, "legL", Pivot(5.9f, 11, 0), mat, b => b.McBox(-2.9f, 0, -3, 6, 13, 6, 76, 76, tw, th));
+
+            try
+            {
+                var glowTex = WardenGlowTexture();
+                if (glowTex == null) return;
+                var g = new Material(Mat.For(glowTex)) { name = "BlockPeak_warden_glow" };
+                if (g.HasProperty("_EmissionColor"))
+                {
+                    g.EnableKeyword("_EMISSION");
+                    g.SetColor("_EmissionColor", new Color(0.2f, 0.9f, 0.9f));
+                    if (g.HasProperty("_EmissionMap")) g.SetTexture("_EmissionMap", glowTex);
+                }
+                Mat.Cutout(g);
+                m.Glow = g;
+                foreach (var r in m.Renderers.ToArray())
+                {
+                    var copy = new GameObject(r.name + "_glow");
+                    copy.transform.SetParent(r.transform, false);
+                    copy.transform.localScale = Vector3.one * 1.004f;
+                    copy.AddComponent<MeshFilter>().sharedMesh = r.GetComponent<MeshFilter>().sharedMesh;
+                    var gr = copy.AddComponent<MeshRenderer>();
+                    gr.sharedMaterial = g;
+                    gr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+            }
+            catch (System.Exception e) { Health.Report("warden-glow", e); }
+        }
+
+        /// <summary>Position of a child part relative to its parent part's pivot (Minecraft pixels, y down).</summary>
+        private static Vector3 Local(float px, float py, float pz) => new Vector3(-px / 16f, -py / 16f, -pz / 16f);
+
+        private static Texture2D wardenGlow;
+
+        private static Texture2D WardenGlowTexture()
+        {
+            if (wardenGlow != null) return wardenGlow;
+            var layers = new[]
+            {
+                "entity/warden/warden_bioluminescent_layer.png", "entity/warden/warden_heart.png",
+                "entity/warden/warden_pulsating_spots_1.png", "entity/warden/warden_pulsating_spots_2.png",
+            };
+            Texture2D outTex = null;
+            foreach (var path in layers)
+            {
+                if (!McAssets.HasTexture(path)) continue;
+                var t = McAssets.Tex(path);
+                if (outTex == null)
+                {
+                    outTex = new Texture2D(t.width, t.height, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp, name = "warden_glow" };
+                    outTex.SetPixels32(new Color32[t.width * t.height]);
+                }
+                if (t.width != outTex.width || t.height != outTex.height) continue;
+                var src = t.GetPixels32();
+                var dst = outTex.GetPixels32();
+                for (int i = 0; i < src.Length; i++) if (src[i].a > dst[i].a) dst[i] = src[i];
+                outTex.SetPixels32(dst);
+            }
+            if (outTex == null) return null;
+            outTex.Apply();
+            return wardenGlow = outTex;
         }
 
         private static void Spider(MobModel m, Transform root, Material mat)

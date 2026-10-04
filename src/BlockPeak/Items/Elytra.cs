@@ -68,7 +68,7 @@ namespace BlockPeak.Items
             var c = Game.LocalChar;
             if (c == null) { Stop(); return; }
             if (!Wearing(c, out var slot)) { Stop(); return; }
-            float dur = Stacks.Durability(slot.data, Balance.F(Cfg, "startDurability", 0.12f));
+            float dur = Stacks.Durability(slot.data, Balance.F(Cfg, "startDurability", 1f));
 
             if (!Gliding)
             {
@@ -98,7 +98,7 @@ namespace BlockPeak.Items
 
             // Durability: Minecraft loses 1 point per second of flight.
             float total = Mathf.Max(1f, Balance.F(Cfg, "glideSeconds", 52f));
-            dur -= Time.deltaTime * Balance.F(Cfg, "startDurability", 0.12f) / total;
+            dur -= Time.deltaTime / total; // glideSeconds = flight time from full durability
             Stacks.SetDurability(slot.data, Mathf.Max(0f, dur));
             syncTimer -= Time.deltaTime;
             if (syncTimer <= 0f) { syncTimer = 1f; SyncToHost(slot, dur); }
