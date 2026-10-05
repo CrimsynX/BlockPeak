@@ -43,6 +43,9 @@ namespace BlockPeak.Mobs
         private Character target;
         private float retarget;
         private float sonicCd;
+        private float legRef;
+        private int sizeSamples;
+        private bool sizeFrozen;
 
         public Vector3 Position => C != null ? C.Center : transform.position;
         private static bool IsHost => !PhotonNetwork.InRoom || PhotonNetwork.IsMasterClient || PhotonNetwork.OfflineMode;
@@ -69,6 +72,7 @@ namespace BlockPeak.Mobs
                 C.refs.movement.movementModifier = speed;
             }
             MobSound("idle");
+            if (type == "warden" && Time.timeSinceLevelLoad > 15f) WardenFx.Emerge(transform.position); // not for players who just joined
         }
 
         private void OnDestroy()
@@ -121,7 +125,15 @@ namespace BlockPeak.Mobs
             fwd.Normalize();
             Vector3 right = Vector3.Cross(up, fwd);
             Quaternion bodyRot = Quaternion.LookRotation(fwd, up);
-            float legLen = Mathf.Max(0.3f, (Vector3.Distance(legL, footL) + Vector3.Distance(legR, footR)) * 0.5f + 0.08f);
+            // Size: PEAK's leg bones bend with every step, so measuring them each frame made the mob grow and shrink.
+            // Take the straightest legs seen while it stands and walks during its first seconds, then keep that size.
+            float measured = Mathf.Max(0.3f, (Vector3.Distance(legL, footL) + Vector3.Distance(legR, footR)) * 0.5f + 0.08f);
+            if (!sizeFrozen)
+            {
+                if (C.data.isGrounded && measured < 3f) { legRef = Mathf.Max(legRef, measured); sizeSamples++; }
+                if (sizeSamples > 90) sizeFrozen = true;
+            }
+            float legLen = legRef > 0f ? legRef : measured;
             float mobScale = Mathf.Clamp(Balance.F(Balance.Section("mobs"), "scale", 0.9f), 0.3f, 2f);
             float s = legLen / Model.LegPx; // world units per Minecraft pixel
             float flash = hearts != null ? hearts.FlashAmount : 0f;

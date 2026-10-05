@@ -1,6 +1,6 @@
 {
   "_readme": "BlockPeak balance file. Edit numbers, save, restart PEAK. In multiplayer the HOST's file is used for everyone. Status amounts use PEAK units: 1.0 = the whole stamina bar, 0.025 = one tick. Weight units: 1 = one PEAK weight tick (2.5 on the bar).",
-  "version": 3,
+  "version": 4,
   "loot": {
     "minecraftShare": 0.15,
     "ancientShare": 0.2,
@@ -79,7 +79,93 @@
       "totem_of_undying",
       "elytra",
       "enchanted_golden_apple"
-    ]
+    ],
+    "blockPools": {
+      "LuggageBeach": {
+        "sand": 5,
+        "sandstone": 4,
+        "oak_planks": 3,
+        "oak_log": 2,
+        "white_wool": 1,
+        "sea_lantern": 0.6,
+        "glass": 0.8,
+        "slime_block": 0.5
+      },
+      "LuggageJungle": {
+        "moss_block": 4,
+        "grass_block": 4,
+        "oak_leaves": 3,
+        "oak_log": 3,
+        "dirt": 2,
+        "melon": 1,
+        "bookshelf": 0.6,
+        "glowstone": 0.5,
+        "slime_block": 0.6
+      },
+      "LuggageRoots": {
+        "mud_bricks": 4,
+        "mossy_cobblestone": 4,
+        "dirt": 3,
+        "spruce_planks": 3,
+        "birch_log": 2,
+        "pumpkin": 1,
+        "shroomlight": 0.7,
+        "slime_block": 0.5
+      },
+      "LuggageTundra": {
+        "packed_ice": 4,
+        "snow_block": 4,
+        "blue_ice": 2,
+        "spruce_planks": 3,
+        "stone": 3,
+        "white_wool": 2,
+        "calcite": 1,
+        "glowstone": 0.5
+      },
+      "LuggageMesa": {
+        "terracotta": 5,
+        "red_sandstone": 4,
+        "sandstone": 3,
+        "hay_block": 2,
+        "cobblestone": 2,
+        "gold_block": 0.3,
+        "glass": 0.6
+      },
+      "LuggageCaldera": {
+        "basalt": 5,
+        "blackstone": 4,
+        "netherrack": 3,
+        "magma_block": 2,
+        "obsidian": 1.5,
+        "tuff": 2,
+        "shroomlight": 0.6
+      },
+      "LuggageGloom": {
+        "deepslate": 4,
+        "tuff": 3,
+        "mossy_cobblestone": 3,
+        "cobblestone": 3,
+        "crafting_table": 1,
+        "glowstone": 0.8
+      },
+      "LuggageCitadel": {
+        "stone_bricks": 5,
+        "bricks": 3,
+        "cobblestone": 3,
+        "bookshelf": 1,
+        "amethyst_block": 1,
+        "copper_block": 0.6
+      },
+      "LuggageClimber": {
+        "stone_bricks": 4,
+        "deepslate": 3,
+        "obsidian": 2,
+        "end_stone": 2,
+        "cherry_planks": 1,
+        "diamond_block": 0.2,
+        "glowstone": 0.6
+      }
+    }
   },
   "items": {
     "blocks": {
@@ -98,8 +184,49 @@
         "packed_ice": 7.5,
         "stone_bricks": 6,
         "basalt": 6,
-        "deepslate": 6
-      }
+        "deepslate": 6,
+        "white_wool": 12,
+        "hay_block": 10,
+        "oak_leaves": 12,
+        "glass": 9,
+        "cherry_planks": 10,
+        "spruce_planks": 10,
+        "bookshelf": 8,
+        "crafting_table": 8,
+        "pumpkin": 9,
+        "melon": 9,
+        "slime_block": 9,
+        "snow_block": 10,
+        "dirt": 8,
+        "grass_block": 8,
+        "gravel": 7,
+        "stone": 6,
+        "cobblestone": 6,
+        "mossy_cobblestone": 6,
+        "bricks": 6,
+        "tuff": 6,
+        "calcite": 7,
+        "mud_bricks": 7,
+        "blue_ice": 7,
+        "glowstone": 8,
+        "sea_lantern": 8,
+        "shroomlight": 9,
+        "magma_block": 6,
+        "blackstone": 5,
+        "netherrack": 7,
+        "end_stone": 6,
+        "obsidian": 4,
+        "gold_block": 4,
+        "diamond_block": 5,
+        "copper_block": 5,
+        "amethyst_block": 6,
+        "oak_log": 8,
+        "birch_log": 8,
+        "sandstone": 7.5,
+        "red_sandstone": 7.5
+      },
+      "slimeBounce": 0.8,
+      "magmaHeat": 0.03
     },
     "torch": {
       "find": [
@@ -470,7 +597,11 @@
       "angerPerSniff": 35,
       "angryAt": 80,
       "angerDecayPerSecond": 1,
-      "digWhenFartherThan": 110
+      "digWhenFartherThan": 110,
+      "chaseHearRange": 24,
+      "darknessRange": 40,
+      "chaseDarkness": 0.2,
+      "darknessStrength": 0.92
     }
   },
   "templates": {
@@ -505,7 +636,6 @@
         "Guidebook",
         "Gem",
         "Crystal",
-        "Scroll",
         "Flare"
       ]
     },
@@ -537,9 +667,9 @@
     "chests": {
       "_comment": "Minecraft chests custom-run option. frequency = chance that a PEAK luggage gets a Minecraft chest next to it.",
       "frequency": {
-        "rare": 0.08,
-        "normal": 0.16,
-        "common": 0.3
+        "rare": 0.15,
+        "normal": 0.3,
+        "common": 0.5
       },
       "kinds": {
         "single": 60,

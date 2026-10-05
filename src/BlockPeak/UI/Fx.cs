@@ -27,6 +27,44 @@ namespace BlockPeak.UI
         {
             public SpriteRenderer R;
             public float Age, Life;
+            public Sprite[] Frames;
+        }
+
+        private static Sprite[] sonicFrames;
+
+        /// <summary>Minecraft's warden sonic boom: a line of expanding cyan rings from the warden to its target.</summary>
+        public static void SonicBoom(Vector3 from, Vector3 to)
+        {
+            try
+            {
+                Ensure();
+                if (sonicFrames == null)
+                {
+                    var list = new List<Sprite>();
+                    for (int i = 0; i < 16; i++)
+                    {
+                        string path = "particle/sonic_boom_" + i + ".png";
+                        if (!McAssets.HasTexture(path)) continue;
+                        var t = McAssets.Tex(path);
+                        list.Add(Sprite.Create(t, new Rect(0, 0, t.width, t.height), new Vector2(0.5f, 0.5f), t.width));
+                    }
+                    sonicFrames = list.ToArray();
+                }
+                if (sonicFrames.Length == 0) { Burst(Vector3.Lerp(from, to, 0.5f), new[] { new Color(0.2f, 0.9f, 0.9f) }, 20, 2f, 0.6f, false); return; }
+                float len = Vector3.Distance(from, to);
+                int n = Mathf.Clamp(Mathf.RoundToInt(len / 1.2f), 2, 24);
+                for (int i = 1; i <= n && puffs.Count < 80; i++)
+                {
+                    var go = new GameObject("fx_sonic");
+                    go.transform.SetParent(root.transform, false);
+                    go.transform.position = Vector3.Lerp(from, to, i / (float)n);
+                    go.transform.localScale = Vector3.one * 1.6f;
+                    var r = go.AddComponent<SpriteRenderer>();
+                    r.sprite = sonicFrames[0];
+                    puffs.Add(new Puff { R = r, Life = 0.6f, Age = -i * 0.02f, Frames = sonicFrames });
+                }
+            }
+            catch (System.Exception e) { Health.Report("fx-sonic", e); }
         }
 
         private static readonly List<Particle> particles = new List<Particle>();
@@ -194,8 +232,9 @@ namespace BlockPeak.UI
                 if (p.Age >= p.Life) { Object.Destroy(p.R.gameObject); puffs.RemoveAt(i); continue; }
                 p.R.enabled = p.Age >= 0f;
                 if (p.Age < 0f) continue;
-                int frame = Mathf.Clamp((int)(p.Age / p.Life * 16f), 0, 15);
-                p.R.sprite = explosionFrames[frame];
+                var frames = p.Frames ?? explosionFrames;
+                int frame = Mathf.Clamp((int)(p.Age / p.Life * frames.Length), 0, frames.Length - 1);
+                p.R.sprite = frames[frame];
                 if (camT != null) p.R.transform.rotation = camT.rotation;
             }
             for (int i = markers.Count - 1; i >= 0; i--)

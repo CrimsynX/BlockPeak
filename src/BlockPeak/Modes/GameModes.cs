@@ -97,16 +97,16 @@ namespace BlockPeak.Modes
             {
                 // Decide what this run is (only once, a moment after the run starts).
                 if (Time.time - runStartedAt < 2f) return;
-                Active = CustomOptions.On(CustomOptions.WardenChase) ? ModeKind.WardenChase
-                       : CustomOptions.On(CustomOptions.ZombieChase) ? ModeKind.ZombieChase : ModeKind.None;
+                Active = CustomOptions.WardenChase ? ModeKind.WardenChase
+                       : CustomOptions.ZombieChase ? ModeKind.ZombieChase : ModeKind.None;
                 foreach (var p in BodyMobs.Players) startPositions[p.photonView.Owner.ActorNumber] = p.Center;
                 startPoint = startPositions.Count > 0 ? startPositions.Values.First() : Vector3.zero;
-                Rains.Configure(CustomOptions.On(CustomOptions.AnvilRain), CustomOptions.On(CustomOptions.TntRain));
+                Rains.Configure(CustomOptions.AnvilRain, CustomOptions.TntRain);
                 phase = Active == ModeKind.None ? Phase.Running : Phase.WaitingForMove;
                 if (Active != ModeKind.None) Plugin.Log.LogInfo("Game mode: " + Active);
             }
 
-            if (!kitGiven && CustomOptions.On(CustomOptions.StarterKit) && Time.time - runStartedAt > 4f)
+            if (!kitGiven && CustomOptions.StarterKit && Time.time - runStartedAt > 4f)
             {
                 kitGiven = true;
                 GiveStarterKits();

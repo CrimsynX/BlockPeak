@@ -61,6 +61,7 @@ namespace BlockPeak.Net
         ChestOpenReq = 56,
         ChestOpened = 57,
         ChestSnapshot = 58,
+        SonicBoom = 59,
     }
 
     /// <summary>

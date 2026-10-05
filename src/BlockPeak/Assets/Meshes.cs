@@ -15,6 +15,14 @@ namespace BlockPeak.Assets
 
         public enum Face { Right, Left, Top, Bottom, Front, Back }
 
+        /// <summary>
+        /// When set, every quad only keeps the texture's opaque pixels as geometry (transparent pixels are left out
+        /// instead of relying on a shader's alpha clip, which PEAK's build may not include).
+        /// </summary>
+        public Texture2D Cut;
+        private Color32[] cutPx;
+        private int cutW, cutH;
+
         /// <summary>Quad given as seen from outside: bottom-left, bottom-right, top-right, top-left.</summary>
         public void Quad(Vector3 bl, Vector3 br, Vector3 tr, Vector3 tl, Vector2 uvBL, Vector2 uvBR, Vector2 uvTR, Vector2 uvTL)
         {
@@ -27,7 +35,59 @@ namespace BlockPeak.Assets
 
         public void Quad(Vector3 bl, Vector3 br, Vector3 tr, Vector3 tl, Rect r)
         {
+            if (Cut != null && QuadCut(bl, br, tl, r)) return;
             Quad(bl, br, tr, tl, new Vector2(r.xMin, r.yMin), new Vector2(r.xMax, r.yMin), new Vector2(r.xMax, r.yMax), new Vector2(r.xMin, r.yMax));
+        }
+
+        private bool Opaque(int x, int y) => x >= 0 && y >= 0 && x < cutW && y < cutH && cutPx[y * cutW + x].a > 127;
+
+        /// <summary>
+        /// Emits only the opaque texels of the quad (one strip per run of opaque texels in each texture row).
+        /// The UV rect may be mirrored (xMin &gt; xMax) or flipped. Returns false if the texture can't be read
+        /// (then the caller draws the plain quad).
+        /// </summary>
+        private bool QuadCut(Vector3 bl, Vector3 br, Vector3 tl, Rect r)
+        {
+            if (cutPx == null)
+            {
+                try { cutPx = Cut.GetPixels32(); cutW = Cut.width; cutH = Cut.height; }
+                catch { Cut = null; return false; }
+            }
+            float u0 = r.xMin, u1 = r.xMax, v0 = r.yMin, v1 = r.yMax;
+            float du = u1 - u0, dv = v1 - v0;
+            if (Mathf.Abs(du) < 1e-6f || Mathf.Abs(dv) < 1e-6f) return false;
+            int xa = Mathf.FloorToInt(Mathf.Min(u0, u1) * cutW + 0.001f), xb = Mathf.CeilToInt(Mathf.Max(u0, u1) * cutW - 0.001f) - 1;
+            int ya = Mathf.FloorToInt(Mathf.Min(v0, v1) * cutH + 0.001f), yb = Mathf.CeilToInt(Mathf.Max(v0, v1) * cutH - 0.001f) - 1;
+            // Fully opaque (the common case): one quad.
+            bool all = true, any = false;
+            for (int y = ya; y <= yb; y++)
+                for (int x = xa; x <= xb; x++)
+                {
+                    if (Opaque(x, y)) any = true; else all = false;
+                }
+            if (all) return false;
+            if (!any) return true;
+            Vector3 eu = br - bl, ev = tl - bl;
+            float umin = Mathf.Min(u0, u1), umax = Mathf.Max(u0, u1), vmin = Mathf.Min(v0, v1), vmax = Mathf.Max(v0, v1);
+            for (int y = ya; y <= yb; y++)
+            {
+                int x = xa;
+                while (x <= xb)
+                {
+                    if (!Opaque(x, y)) { x++; continue; }
+                    int start = x;
+                    while (x <= xb && Opaque(x, y)) x++;
+                    // texel run [start, x) in UV, clamped to the face's own UV rect
+                    float ua = Mathf.Clamp((float)start / cutW, umin, umax), ub = Mathf.Clamp((float)x / cutW, umin, umax);
+                    float va = Mathf.Clamp((float)y / cutH, vmin, vmax), vb = Mathf.Clamp((float)(y + 1) / cutH, vmin, vmax);
+                    float sa = (ua - u0) / du, sb = (ub - u0) / du, ta = (va - v0) / dv, tb = (vb - v0) / dv;
+                    float s0 = Mathf.Min(sa, sb), s1 = Mathf.Max(sa, sb), t0 = Mathf.Min(ta, tb), t1 = Mathf.Max(ta, tb);
+                    Vector2 UV(float s, float t) => new Vector2(u0 + s * du, v0 + t * dv);
+                    Vector3 P(float s, float t) => bl + eu * s + ev * t;
+                    Quad(P(s0, t0), P(s1, t0), P(s1, t1), P(s0, t1), UV(s0, t0), UV(s1, t0), UV(s1, t1), UV(s0, t1));
+                }
+            }
+            return true;
         }
 
         public void FaceQuad(Face f, Vector3 a, Vector3 b, Rect r)
@@ -147,7 +207,9 @@ namespace BlockPeak.Assets
         /// <summary>
         /// Packs side/top/bottom block textures into one strip (side | top | bottom) so a cube needs one material.
         /// </summary>
-        public static Texture2D BlockAtlas(Texture2D side, Texture2D top, Texture2D bottom)
+        public static Texture2D BlockAtlas(Texture2D side, Texture2D top, Texture2D bottom) => BlockAtlas(side, top, bottom, false);
+
+        public static Texture2D BlockAtlas(Texture2D side, Texture2D top, Texture2D bottom, bool keepAlpha)
         {
             int n = 16;
             var atlas = new Texture2D(n * 3, n, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
@@ -160,7 +222,7 @@ namespace BlockPeak.Assets
                     {
                         Color c;
                         try { c = t.GetPixel(x * t.width / n, y * t.width / n); } catch { c = Color.magenta; }
-                        c.a = 1f;
+                        if (!keepAlpha) c.a = 1f;
                         atlas.SetPixel(i * n + x, y, c);
                     }
             }
@@ -170,7 +232,18 @@ namespace BlockPeak.Assets
         }
 
         /// <summary>Unit cube (size x size x size), bottom at y=0, textured from a BlockAtlas strip.</summary>
+        private static readonly Dictionary<string, Mesh> cubes = new Dictionary<string, Mesh>();
+
         public static Mesh Cube(float size, string name)
+        {
+            string key = name + "|" + size;
+            if (cubes.TryGetValue(key, out var cached) && cached != null) return cached;
+            var built = BuildCube(size, name);
+            cubes[key] = built;
+            return built;
+        }
+
+        private static Mesh BuildCube(float size, string name)
         {
             var mb = new MeshBuilder();
             float h = size / 2f;
@@ -179,6 +252,34 @@ namespace BlockPeak.Assets
             Rect bottom = Rect.MinMaxRect(2f / 3f + 0.001f, 0.001f, 0.999f, 0.999f);
             mb.Box(new Vector3(-h, 0, -h), new Vector3(h, size, h), new[] { side, side, top, bottom, side, side });
             return mb.Build(name);
+        }
+
+        private static readonly Dictionary<Texture2D, Mesh> cutCubes = new Dictionary<Texture2D, Mesh>();
+
+        /// <summary>Same cube, but only the atlas's opaque pixels are geometry (glass, leaves).</summary>
+        public static Mesh CubeCut(Texture2D atlas)
+        {
+            if (atlas != null && cutCubes.TryGetValue(atlas, out var m) && m != null) return m;
+            var mb = new MeshBuilder { Cut = atlas };
+            const float h = 0.5f;
+            Rect side = Rect.MinMaxRect(0.001f, 0.001f, 1f / 3f - 0.001f, 0.999f);
+            Rect top = Rect.MinMaxRect(1f / 3f + 0.001f, 0.001f, 2f / 3f - 0.001f, 0.999f);
+            Rect bottom = Rect.MinMaxRect(2f / 3f + 0.001f, 0.001f, 0.999f, 0.999f);
+            mb.Box(new Vector3(-h, 0, -h), new Vector3(h, 1f, h), new[] { side, side, top, bottom, side, side });
+            m = mb.Build("mc_cube_cut");
+            if (atlas != null) cutCubes[atlas] = m;
+            return m;
+        }
+
+        /// <summary>A copy of a texture multiplied by a colour (Minecraft tints grass tops and leaves).</summary>
+        public static Texture2D Tinted(Texture2D src, Color tint)
+        {
+            var dst = new Texture2D(src.width, src.height, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp, name = src.name + "_tint" };
+            var px = src.GetPixels();
+            for (int i = 0; i < px.Length; i++) px[i] = new Color(px[i].r * tint.r, px[i].g * tint.g, px[i].b * tint.b, px[i].a);
+            dst.SetPixels(px);
+            dst.Apply();
+            return dst;
         }
 
         /// <summary>Minecraft's torch model: a 2x10x2 pixel stick using the middle of torch.png.</summary>

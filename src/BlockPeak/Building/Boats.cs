@@ -280,6 +280,7 @@ namespace BlockPeak.Building
             }
             c.data.sinceGrounded = 0f;
             c.refs.movement.CapFallDamage(0f, 0.5f); // no fall damage while in a boat
+            BlockEffects.GuardFall(0.5f);
             if (Mathf.Abs(b.Speed) > 0.5f && Time.time % 0.9f < dt) Sfx.At(onWater ? "entity/boat/paddle_water" : "entity/boat/paddle_land", b.Pos, 0.35f);
         }
     }
@@ -358,7 +359,7 @@ namespace BlockPeak.Building
             go.transform.SetParent(parent, false);
             go.transform.localPosition = new Vector3(-px / 16f, -py / 16f, -pz / 16f);
             go.transform.localRotation = McRot(rx, ry, rz);
-            var mb = new MeshBuilder();
+            var mb = new MeshBuilder { Cut = mat.mainTexture as Texture2D };
             boxes(mb);
             go.AddComponent<MeshFilter>().sharedMesh = mb.Build("mc_boat_" + name);
             go.AddComponent<MeshRenderer>().sharedMaterial = mat;

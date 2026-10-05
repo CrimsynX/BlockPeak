@@ -113,7 +113,7 @@ namespace BlockPeak.Items
         /// </summary>
         private static Mesh ArrowMesh()
         {
-            var mb = new MeshBuilder();
+            var mb = new MeshBuilder { Cut = McAssets.Tex("entity/projectiles/arrow.png") };
             const float L = 0.7f, s = L / 16f;
             float h = 2.5f * s;
             Rect side = MeshBuilder.PxRect(0, 0, 16, 5, 32, 32);
@@ -285,6 +285,7 @@ namespace BlockPeak.Items
             c.AddForce(dir * (launch * k / Time.fixedDeltaTime), 1f, 1f);
             c.data.sinceGrounded = Mathf.Min(c.data.sinceGrounded, 0.1f);
             c.refs.movement.CapFallDamage(0.1f, 4f);
+            Building.BlockEffects.GuardFall(4f);
         }
 
         public static void Clear()

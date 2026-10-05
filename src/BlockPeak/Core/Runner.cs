@@ -47,6 +47,7 @@ namespace BlockPeak.Core
                 GameModes.RegisterNet();
                 Rains.RegisterNet();
                 Chests.RegisterNet();
+                WardenFx.RegisterNet();
             });
         }
 
@@ -64,6 +65,7 @@ namespace BlockPeak.Core
                 BlockWorld.TickQuickPlace();
                 BlockWorld.TickWarmth();
                 PlacementPreview.Tick();
+                BlockEffects.Tick();
             });
             Health.Guard("mobs", () =>
             {
@@ -81,6 +83,7 @@ namespace BlockPeak.Core
             Health.Guard("elytra", Elytra.Tick);
             Health.Guard("boats", Boats.Tick);
             Health.Guard("mc-visuals", McVisuals.Tick);
+            Health.Guard("warden-fx", WardenFx.Tick);
             Health.Guard("modes", GameModes.Tick);
             Health.Guard("chests", Chests.TickHost);
         }
@@ -104,6 +107,7 @@ namespace BlockPeak.Core
             Health.Guard("chat-draw", ChatBox.Draw);
             Health.Guard("modes-draw", GameModes.Draw);
             Health.Guard("effects-draw", LocalEffects.Draw);
+            Health.Guard("warden-draw", WardenFx.Draw);
             Health.Guard("options-draw", CustomOptions.Draw);
         }
 
@@ -124,7 +128,7 @@ namespace BlockPeak.Core
             Chests.Clear();
             LocalEffects.Reset();
             McChests.Reset();
-            if (scene != "Airport" && !scene.ToLowerInvariant().Contains("title") && !scene.ToLowerInvariant().Contains("menu")) Loot.ResetRun();
+            if (scene != "Airport" && !scene.ToLowerInvariant().Contains("title") && !scene.ToLowerInvariant().Contains("menu")) { Loot.ResetRun(); OnlyMinecraft.ResetRun(); }
         }
 
         private void CheckRoom()

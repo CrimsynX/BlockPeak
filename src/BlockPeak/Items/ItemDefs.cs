@@ -20,6 +20,13 @@ namespace BlockPeak.Items
         public string Prompt = "BP_USE";
         public string Effect;         // potions: "speed" or "jump"
         public Color Tint = Color.white;
+        // Blocks
+        public Color FaceTint = Color.white;   // grass tops and leaves are tinted in Minecraft
+        public bool TintSides;                  // leaves: every face; grass: only the top
+        public bool Cutout;                     // glass, leaves: see-through pixels
+        public float Light;                     // light range (glowstone, sea lantern, magma...)
+        public Color LightColor = new Color(1f, 0.85f, 0.6f);
+        public string Special;                  // "slime" (bouncy), "magma" (hot)
         public ushort Id;
         public int Index;
 
@@ -28,6 +35,26 @@ namespace BlockPeak.Items
         public (int min, int max) Find => Balance.Range(Cfg, "find", 1, 1);
         public bool IsPlaceable => Kind == McKind.Block || Kind == McKind.Torch || Kind == McKind.Ladder || Kind == McKind.Tnt;
         public string PrefabName => "BlockPeak_" + Key;
+
+        private Texture2D sideTex, topTex, bottomTex, atlas;
+
+        public Texture2D SideTex => sideTex != null ? sideTex : sideTex = Face(Side, TintSides);
+        public Texture2D TopTex => topTex != null ? topTex : topTex = Face(Top ?? Side, true);
+        public Texture2D BottomTex => bottomTex != null ? bottomTex : bottomTex = Face(Bottom ?? Top ?? Side, TintSides);
+
+        private Texture2D Face(string path, bool tint)
+        {
+            var t = Assets.McAssets.Tex(path);
+            return tint && FaceTint != Color.white ? Assets.Meshes.Tinted(t, FaceTint) : t;
+        }
+
+        /// <summary>The block's side|top|bottom texture strip (tints and transparency applied).</summary>
+        public Texture2D BlockAtlas => atlas != null ? atlas : atlas = Assets.Meshes.BlockAtlas(SideTex, TopTex, BottomTex, Cutout);
+
+        public Mesh BlockMesh => Cutout ? Assets.Meshes.CubeCut(BlockAtlas) : Assets.Meshes.Cube(1f, "mc_cube");
+
+        /// <summary>Forget cached textures (after the real Minecraft textures were copied mid-session).</summary>
+        public void ResetLooks() { sideTex = topTex = bottomTex = atlas = null; }
         public string LocName => "BP_" + Key.ToUpperInvariant();
 
         /// <summary>Weight units for a stack of n (PEAK counts 1 unit = one 2.5% tick on the bar). Fractions are fine.</summary>
@@ -87,15 +114,60 @@ namespace BlockPeak.Items
             Add(new McItemDef { Key = "potion_swiftness", Name = "Potion of Swiftness", Kind = McKind.Potion, Texture = "item/potion.png", Effect = "speed", Tint = new Color(0.2f, 0.92f, 1f), Prompt = "BP_DRINK" });
             Add(new McItemDef { Key = "potion_leaping", Name = "Potion of Leaping", Kind = McKind.Potion, Texture = "item/potion.png", Effect = "jump", Tint = new Color(0.99f, 1f, 0.52f), Prompt = "BP_DRINK" });
             Add(new McItemDef { Key = "bow", Name = "Bow", Kind = McKind.Bow, Texture = "item/bow.png", Prompt = "BP_SHOOT" });
+
+            // ---- more blocks (0.4.0); added at the end so older item ids stay the same
+            var grass = new Color(0.57f, 0.74f, 0.35f);   // Minecraft plains grass colour
+            var foliage = new Color(0.47f, 0.67f, 0.19f); // plains foliage colour
+            Block("stone", "Stone", "block/stone.png");
+            Block("cobblestone", "Cobblestone", "block/cobblestone.png");
+            Block("mossy_cobblestone", "Mossy Cobblestone", "block/mossy_cobblestone.png");
+            Block("dirt", "Dirt", "block/dirt.png");
+            Block("grass_block", "Grass Block", "block/grass_block_side.png", "block/grass_block_top.png", "block/dirt.png").FaceTint = grass;
+            Block("oak_log", "Oak Log", "block/oak_log.png", "block/oak_log_top.png");
+            Block("birch_log", "Birch Log", "block/birch_log.png", "block/birch_log_top.png");
+            Block("spruce_planks", "Spruce Planks", "block/spruce_planks.png");
+            Block("cherry_planks", "Cherry Planks", "block/cherry_planks.png");
+            Block("bricks", "Bricks", "block/bricks.png");
+            Block("sandstone", "Sandstone", "block/sandstone.png", "block/sandstone_top.png", "block/sandstone_bottom.png");
+            Block("red_sandstone", "Red Sandstone", "block/red_sandstone.png", "block/red_sandstone_top.png", "block/red_sandstone_bottom.png");
+            Block("gravel", "Gravel", "block/gravel.png");
+            Block("snow_block", "Snow Block", "block/snow.png");
+            Block("blue_ice", "Blue Ice", "block/blue_ice.png");
+            Block("obsidian", "Obsidian", "block/obsidian.png");
+            Block("netherrack", "Netherrack", "block/netherrack.png");
+            Block("blackstone", "Blackstone", "block/blackstone.png", "block/blackstone_top.png");
+            Block("end_stone", "End Stone", "block/end_stone.png");
+            Block("mud_bricks", "Mud Bricks", "block/mud_bricks.png");
+            Block("tuff", "Tuff", "block/tuff.png");
+            Block("calcite", "Calcite", "block/calcite.png");
+            Block("white_wool", "White Wool", "block/white_wool.png");
+            Block("hay_block", "Hay Bale", "block/hay_block_side.png", "block/hay_block_top.png");
+            Block("bookshelf", "Bookshelf", "block/bookshelf.png", "block/oak_planks.png");
+            Block("crafting_table", "Crafting Table", "block/crafting_table_front.png", "block/crafting_table_top.png", "block/oak_planks.png");
+            Block("pumpkin", "Pumpkin", "block/pumpkin_side.png", "block/pumpkin_top.png");
+            Block("melon", "Melon", "block/melon_side.png", "block/melon_top.png");
+            Block("amethyst_block", "Block of Amethyst", "block/amethyst_block.png");
+            Block("copper_block", "Block of Copper", "block/copper_block.png");
+            Block("gold_block", "Block of Gold", "block/gold_block.png");
+            Block("diamond_block", "Block of Diamond", "block/diamond_block.png");
+            var glass = Block("glass", "Glass", "block/glass.png"); glass.Cutout = true;
+            var leaves = Block("oak_leaves", "Oak Leaves", "block/oak_leaves.png"); leaves.Cutout = true; leaves.FaceTint = foliage; leaves.TintSides = true;
+            var glow = Block("glowstone", "Glowstone", "block/glowstone.png"); glow.Light = 12f; glow.LightColor = new Color(1f, 0.85f, 0.55f);
+            var lantern = Block("sea_lantern", "Sea Lantern", "block/sea_lantern.png"); lantern.Light = 12f; lantern.LightColor = new Color(0.75f, 0.95f, 1f);
+            var shroom = Block("shroomlight", "Shroomlight", "block/shroomlight.png"); shroom.Light = 11f; shroom.LightColor = new Color(1f, 0.65f, 0.35f);
+            var magma = Block("magma_block", "Magma Block", "block/magma.png"); magma.Light = 5f; magma.LightColor = new Color(1f, 0.45f, 0.15f); magma.Special = "magma";
+            var slime = Block("slime_block", "Slime Block", "block/slime_block.png"); slime.Special = "slime";
         }
 
         private static int nextIndex;
 
         private static void Skip() => nextIndex++;
 
-        private static void Block(string key, string name, string side, string top = null)
+        private static McItemDef Block(string key, string name, string side, string top = null, string bottom = null)
         {
-            Add(new McItemDef { Key = key, Name = name, Kind = McKind.Block, Side = side, Top = top ?? side, Bottom = top ?? side, CfgKey = "blocks", Prompt = "BP_PLACE" });
+            var d = new McItemDef { Key = key, Name = name, Kind = McKind.Block, Side = side, Top = top ?? side, Bottom = bottom ?? top ?? side, CfgKey = "blocks", Prompt = "BP_PLACE" };
+            Add(d);
+            return d;
         }
 
         private static void Food(string key, string name, string tex)

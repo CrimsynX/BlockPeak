@@ -80,6 +80,17 @@ namespace BlockPeak.Items
 
         public static McItemDef BlockFor(string pool)
         {
+            // Weighted list of blocks that fit this part of the mountain ("blockPools" in balance.json).
+            if (L["blockPools"]?[pool] is JObject pools)
+            {
+                var options = pools.Properties().Select(p => (def: ItemDefs.ByKey(p.Name), w: (float)p.Value)).Where(o => o.def != null && o.w > 0 && ItemRegistry.Templates.ContainsKey(o.def.Id)).ToList();
+                if (options.Count > 0)
+                {
+                    float r = UnityEngine.Random.value * options.Sum(o => o.w);
+                    foreach (var o in options) { r -= o.w; if (r <= 0) return o.def; }
+                    return options[options.Count - 1].def;
+                }
+            }
             string key = L["blockForPool"]?[pool]?.ToString();
             var def = ItemDefs.ByKey(key);
             if (def != null) return def;
@@ -100,7 +111,7 @@ namespace BlockPeak.Items
             {
                 if (__result == null || !ItemRegistry.Ready) return;
                 if (!PhotonNetwork.IsMasterClient) return;
-                if (Modes.CustomOptions.On(Modes.CustomOptions.McItemsOnly)) { OnlyMinecraft(__instance, __result); return; }
+                if (Modes.CustomOptions.OnlyMinecraftItems) return; // swapped one by one as they spawn (OnlyMinecraft.cs)
                 if (Modes.CustomOptions.ChestFrequency != null) return; // Minecraft items only come from Minecraft chests
                 if (!(__instance is Luggage)) return;
                 string pool = Loot.PoolName(__instance.GetSpawnPool());
@@ -130,37 +141,7 @@ namespace BlockPeak.Items
             catch (Exception e) { Health.Report("loot", e); }
         }
 
-        /// <summary>
-        /// "Only Minecraft items" custom run: every item a spawner makes becomes a Minecraft item, except the start
-        /// area (BingBong, passport...), the respawn chests and gems/crystals (keep list in balance.json).
-        /// </summary>
-        private static void OnlyMinecraft(Spawner sp, List<GameObject> result)
-        {
-            if (sp is RespawnChest) return;
-            var M = Balance.Section("modes")["minecraftItemsOnly"] ?? new JObject();
-            float startRadius = Balance.F(M, "startAreaRadius", 40f);
-            Vector3 pos = sp.transform.position;
-            if (SpawnPoint.allSpawnPoints != null)
-                foreach (var s in SpawnPoint.allSpawnPoints)
-                    if (s != null && Vector3.Distance(s.transform.position, pos) < startRadius) return;
-            var keep = (M["keep"] as JArray)?.Select(t => ((string)t).ToLowerInvariant()).ToList() ?? new List<string>();
-
-            string pool = sp is Luggage ? Loot.PoolName(sp.GetSpawnPool()) : PoolForBiome(Game.CurrentBiome);
-            if (!Loot.IsBiomePool(pool) && !Loot.IsRarePool(pool)) pool = PoolForBiome(Game.CurrentBiome);
-            bool rare = Loot.IsRarePool(pool);
-            for (int i = 0; i < result.Count; i++)
-            {
-                var go = result[i];
-                if (go == null) continue;
-                if (go.GetComponent<Item>() == null || go.GetComponent<McItem>() != null) continue;
-                string n = go.name.ToLowerInvariant();
-                if (keep.Any(k => n.Contains(k))) continue;
-                var t = Loot.TemplateFor(Loot.Roll(pool, rare)) ?? Loot.TemplateFor(Loot.Roll(pool, false));
-                if (t != null) result[i] = t;
-            }
-        }
-
-        private static string PoolForBiome(Biome.BiomeType b)
+        public static string PoolForBiome(Biome.BiomeType b)
         {
             string s = b.ToString().ToLowerInvariant();
             if (s.Contains("tropic") || s.Contains("jungle")) return "LuggageJungle";

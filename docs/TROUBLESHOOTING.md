@@ -10,7 +10,7 @@ send `LogOutput.log` plus `BepInEx\config\BlockPeak\peak-items.txt`.
 | Problem | Try this |
 |---|---|
 | PEAK crashes or closes at start after installing | Make sure PEAK is up to date in Steam. In Steam → PEAK → Properties → Launch options add `-dx12`. Still crashing: setup → **Mods OFF**, check that PEAK starts vanilla, then report the log. |
-| Nothing changed in game | Did the game start through Steam with mods ON? The log should say `BlockPeak 0.3.0 starting`. If there is no `BepInEx\LogOutput.log` at all, BepInEx is not running: press Install / Update again. |
+| Nothing changed in game | Did the game start through Steam with mods ON? The log should say `BlockPeak 0.4.0 starting`. If there is no `BepInEx\LogOutput.log` at all, BepInEx is not running: press Install / Update again. |
 | Grey/purple checker textures instead of Minecraft ones | Minecraft 26.3 was not found. Start Minecraft 26.3 once in the Modrinth App, then setup → **Copy Minecraft textures**. If Minecraft is somewhere unusual, set `MinecraftPath` in the .cfg to the folder that contains `versions` and `assets` (for the Modrinth App: `%AppData%\ModrinthApp\meta`). |
 | No Minecraft sounds | Same as above; the launcher must have downloaded the sounds (start the game once). |
 | Minecraft items are invisible, black or pink | Set `ItemShaderOverride` in the .cfg (Debug section), e.g. `Universal Render Pipeline/Lit`, and restart. |

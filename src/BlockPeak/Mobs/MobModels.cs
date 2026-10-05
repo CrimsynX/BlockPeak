@@ -14,6 +14,7 @@ namespace BlockPeak.Mobs
         public readonly List<Transform> SpiderLegsL = new List<Transform>();
         public readonly List<Transform> QuadLegs = new List<Transform>(); // creeper: RH, LH, RF, LF
         public readonly List<Renderer> Renderers = new List<Renderer>();
+        public readonly Dictionary<Renderer, System.Action<MeshBuilder>> Boxes = new Dictionary<Renderer, System.Action<MeshBuilder>>();
         public float Height = 2f;
         public float Width = 0.6f;
         public string Kind; // humanoid, skeleton, warden, spider, creeper, slime, magma
@@ -117,12 +118,14 @@ namespace BlockPeak.Mobs
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
             go.transform.localPosition = pivot;
-            var mb = new MeshBuilder();
+            // Only the opaque texels become geometry, so see-through parts of the texture stay see-through.
+            var mb = new MeshBuilder { Cut = mat != null ? mat.mainTexture as Texture2D : null };
             boxes(mb);
             go.AddComponent<MeshFilter>().sharedMesh = mb.Build("mob_" + name);
             var r = go.AddComponent<MeshRenderer>();
             r.sharedMaterial = mat;
             m.Renderers.Add(r);
+            m.Boxes[r] = boxes;
             return go.transform;
         }
 
@@ -191,10 +194,13 @@ namespace BlockPeak.Mobs
                 m.Glow = g;
                 foreach (var r in m.Renderers.ToArray())
                 {
+                    if (!m.Boxes.TryGetValue(r, out var boxes)) continue;
+                    var gmb = new MeshBuilder { Cut = glowTex };
+                    boxes(gmb);
                     var copy = new GameObject(r.name + "_glow");
                     copy.transform.SetParent(r.transform, false);
                     copy.transform.localScale = Vector3.one * 1.004f;
-                    copy.AddComponent<MeshFilter>().sharedMesh = r.GetComponent<MeshFilter>().sharedMesh;
+                    copy.AddComponent<MeshFilter>().sharedMesh = gmb.Build("mob_glow_" + r.name);
                     var gr = copy.AddComponent<MeshRenderer>();
                     gr.sharedMaterial = g;
                     gr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;

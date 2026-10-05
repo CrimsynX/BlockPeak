@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.4.0
+
+Fixed
+- Black parts on Minecraft models (warden, skeletons, zombies, chests, boat, elytra, arrows): transparent pixels are
+  now left out of the model itself instead of relying on a shader feature PEAK's build doesn't have.
+- Minecraft particles and clouds use a shader that is always in the game (no more black squares).
+- Mobs no longer shrink and grow while they walk.
+- Zombie Chase zombies were invisible: they are now drawn without GPU instancing (which PEAK's build doesn't support).
+- Minecraft chests now actually appear: they work on slopes, keep appearing as new parts of the mountain load, and
+  there are more of them.
+- "Only Minecraft items" now also swaps berries, fruit, items lying around and everything else PEAK spawns, not just
+  luggage. Flares stay (you need one at the summit).
+- The Custom run window no longer overflows: BlockPeak has one MINECRAFT row that opens a Minecraft-style options
+  screen (Chase / Items / Rain / Starter kit).
+- Slime landings, boats and wind charges no longer knock you over on a hard landing.
+
+New
+- 39 more blocks (47 in total), with a mix per part of the mountain: grass, dirt, logs, stone, cobblestone, bricks,
+  sandstone, snow, blue ice, obsidian, netherrack, blackstone, wool, hay, bookshelf, crafting table, pumpkin, melon,
+  glass and leaves (see-through), gold/diamond/copper/amethyst blocks...
+- Glowing blocks (glowstone, sea lantern, shroomlight, magma), a bouncy slime block and a hot magma block.
+- Scarier warden: Minecraft's pulsing Darkness effect near it, ground-shaking footsteps, roar and emergence, sculk
+  "nearby" warnings, and the sonic boom rings. In Warden Chase it hears farther and calms down slower.
+
 ## 0.3.0
 
 New

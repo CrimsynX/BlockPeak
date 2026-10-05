@@ -394,8 +394,8 @@ namespace BlockPeak.Mobs
                     poseMeshes[t][p] = mesh;
                 }
                 var baseMat = model.Renderers.Count > 0 ? model.Renderers[0].sharedMaterial : Mat.For(McAssets.Tex(MobModels.TextureFor(TypeIndex[t])));
-                mats[t] = new Material(baseMat) { enableInstancing = true };
-                hurtMats[t] = new Material(mats[t]) { enableInstancing = true };
+                mats[t] = new Material(baseMat);
+                hurtMats[t] = new Material(mats[t]);
                 foreach (var prop in new[] { "_BaseColor", "_Color" }) if (hurtMats[t].HasProperty(prop)) hurtMats[t].SetColor(prop, new Color(1f, 0.35f, 0.35f));
                 UnityEngine.Object.Destroy(holder);
             }
@@ -420,27 +420,16 @@ namespace BlockPeak.Mobs
                     int bucket = pose + (now < m.HurtUntil ? Poses : 0);
                     batches[Mathf.Min(m.Type, (byte)2), bucket].Add(Matrix4x4.TRS(m.Pos, Quaternion.Euler(0, m.Yaw, 0), Vector3.one)); // size is baked into the pose meshes
                 }
-                bool instancing = SystemInfo.supportsInstancing;
+                // Plain (non-instanced) draws: PEAK's build doesn't include the instanced shader variants, which made
+                // the horde invisible. ~150 simple draws a frame are cheap with URP's SRP batcher.
                 for (int t = 0; t < 3; t++)
                     for (int b = 0; b < Poses * 2; b++)
                     {
                         var mats4 = batches[t, b];
                         if (mats4.Count == 0) continue;
                         var mesh = poseMeshes[t][b % Poses];
-                        var mat = b >= Poses ? hurtMats[t] : mats[t];
-                        if (instancing)
-                        {
-                            var bounds = new Bounds(mats4[0].GetColumn(3), Vector3.one * 3f);
-                            foreach (var mtx in mats4) bounds.Encapsulate(new Bounds(mtx.GetColumn(3), Vector3.one * 3f));
-                            var rp = new RenderParams(mat) { shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On, receiveShadows = true, worldBounds = bounds };
-                            for (int start = 0; start < mats4.Count; start += 1023)
-                            {
-                                int count = Mathf.Min(1023, mats4.Count - start);
-                                Graphics.RenderMeshInstanced(rp, mesh, 0, mats4, count, start);
-                            }
-                        }
-                        else
-                            foreach (var mtx in mats4) Graphics.DrawMesh(mesh, mtx, mat, 0);
+                        var rp = new RenderParams(b >= Poses ? hurtMats[t] : mats[t]) { shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On, receiveShadows = true };
+                        foreach (var mtx in mats4) Graphics.RenderMesh(rp, mesh, 0, mtx);
                     }
             }
             catch (Exception e)

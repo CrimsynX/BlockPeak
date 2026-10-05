@@ -22,6 +22,7 @@ Enabled/Density/MaxPerPlayer/Creepers) override the matching numbers here.
 | `chestItemsMin/Max` | How many items a Minecraft chest holds |
 | `perRunCaps` | At most this many of an item per run (elytra 1, enchanted golden apple 1, ...) |
 | `blockForPool` | Which block type each luggage pool gives (sand on the beach, packed ice in the tundra...) |
+| `blockPools` | Weighted mix of blocks for each luggage pool (overrides `blockForPool`) |
 | `biomePools` | Luggage pools that can contain Minecraft items |
 | `rarePoolsOnly` | Pools that only get the rare items |
 | `weights` | Relative chance of each item (`blocks` = the biome's block) |
@@ -35,7 +36,7 @@ Weight: `weightPer: N` = one weight unit per N items (rounded up), `weightEach: 
 | Item | Extra keys |
 |---|---|
 | blocks | (shared by all block types) |
-| blocks | `blockWeights`: blocks per weight unit for each block type (higher = lighter) |
+| blocks | `blockWeights`: blocks per weight unit for each block type (higher = lighter), `slimeBounce` (share of landing speed bounced back), `magmaHeat` (heat per second on magma) |
 | tnt | `fuseSeconds`, `radius`, `injury` (at the centre), `knockback` |
 | ender_pearl | `injury`, `throwBoost` |
 | bow | `arrows`, `drawSeconds`, `arrowSpeed`, `damage` (mob health points at full draw), `playerInjury`, `knockDownSeconds`, `knockback`, `mobKnockDownSeconds` |
@@ -87,7 +88,7 @@ Weight: `weightPer: N` = one weight unit per N items (rounded up), `weightEach: 
 
 ### mobs.warden
 
-`hearRange` (m), `smellRange` (m, sideways), `sniffSeconds`, `angerPerVibration`, `angerPerSniff`, `angryAt`
+`hearRange` / `chaseHearRange` (m), `darknessRange`, `chaseDarkness`, `darknessStrength` (the Darkness effect), `smellRange` (m, sideways), `sniffSeconds`, `angerPerVibration`, `angerPerSniff`, `angryAt`
 (anger needed to hunt, Minecraft uses 80), `angerDecayPerSecond`, `digWhenFartherThan` (Warden Chase: digs over to
 the scouts when they are this far away for 20 s).
 

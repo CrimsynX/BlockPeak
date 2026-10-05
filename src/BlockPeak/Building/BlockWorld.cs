@@ -190,10 +190,15 @@ namespace BlockPeak.Building
         {
             switch (def.Key)
             {
-                case "sand": return "dig/sand";
-                case "oak_planks": case "ladder": case "torch": return "dig/wood";
-                case "moss_block": case "tnt": return "dig/grass";
-                case "packed_ice": return "dig/stone";
+                case "sand": case "gravel": case "red_sandstone": return "dig/sand";
+                case "oak_planks": case "spruce_planks": case "cherry_planks": case "oak_log": case "birch_log":
+                case "bookshelf": case "crafting_table": case "torch": return "dig/wood";
+                case "moss_block": case "tnt": case "grass_block": case "dirt": case "oak_leaves": case "hay_block":
+                case "pumpkin": case "melon": case "shroomlight": return "dig/grass";
+                case "snow_block": return "dig/snow";
+                case "white_wool": return "dig/cloth";
+                case "slime_block": return "mob/slime/small";
+                case "glass": case "glowstone": case "sea_lantern": return "random/glass";
                 default: return "dig/stone";
             }
         }

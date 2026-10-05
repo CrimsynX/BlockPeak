@@ -139,7 +139,8 @@ namespace BlockPeak.UI
             frames = files.Length;
             if (frames == 0) return null;
             var strip = Strip(files);
-            var sh = Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Particles/Standard Unlit") ?? Shader.Find("Sprites/Default");
+            // Sprites/Default is always in Unity builds and blends alpha; URP's particle shader may lack the transparent variant.
+            var sh = Shader.Find("Sprites/Default") ?? Shader.Find("Universal Render Pipeline/Particles/Unlit");
             if (sh == null) return null;
             m = new Material(sh) { name = "BlockPeak_particle_" + kind };
             if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", strip);
@@ -254,7 +255,7 @@ namespace BlockPeak.UI
             if (cloudMesh == null) return false;
             if (cloudMat == null)
             {
-                var sh = Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Sprites/Default");
+                var sh = Shader.Find("Sprites/Default") ?? Shader.Find("Universal Render Pipeline/Particles/Unlit");
                 cloudMat = new Material(sh) { name = "BlockPeak_clouds" };
                 if (cloudMat.HasProperty("_BaseColor")) cloudMat.SetColor("_BaseColor", Color.white);
                 Transparent(cloudMat);

@@ -26,7 +26,7 @@ namespace BlockPeak.Modes
         {
             public int Id;
             public Vector3 Pos;
-            public float Yaw;
+            public Quaternion Rot = Quaternion.identity;
             public ChestKind Kind;
             public bool Opened;
             public ChestView View;
@@ -39,6 +39,7 @@ namespace BlockPeak.Modes
         private static bool placed;
         private static float placeAt = -1f, nextCheck;
         private static readonly HashSet<int> seenLuggage = new HashSet<int>();
+        private static readonly Dictionary<int, int> tries = new Dictionary<int, int>();
 
         private static JToken C => Balance.Section("modes")["chests"] ?? new JObject();
         private static bool IsHost => !PhotonNetwork.InRoom || PhotonNetwork.IsMasterClient || PhotonNetwork.OfflineMode;
@@ -53,7 +54,7 @@ namespace BlockPeak.Modes
                 var kinds = (byte[])a[2];
                 var opened = (bool[])a[3];
                 for (int i = 0; i < ids.Length; i++)
-                    Add(new Record { Id = ids[i], Pos = new Vector3(pos[i * 4], pos[i * 4 + 1], pos[i * 4 + 2]), Yaw = pos[i * 4 + 3], Kind = (ChestKind)kinds[i], Opened = opened[i] });
+                    Add(new Record { Id = ids[i], Pos = new Vector3(pos[i * 7], pos[i * 7 + 1], pos[i * 7 + 2]), Rot = new Quaternion(pos[i * 7 + 3], pos[i * 7 + 4], pos[i * 7 + 5], pos[i * 7 + 6]), Kind = (ChestKind)kinds[i], Opened = opened[i] });
             });
             Channel.On(Op.ChestOpenReq, (a, s) => HostOpen(Channel.Int(a[0])));
             Channel.On(Op.ChestOpened, (a, s) =>
@@ -70,6 +71,7 @@ namespace BlockPeak.Modes
             placed = false;
             placeAt = -1f;
             seenLuggage.Clear();
+            tries.Clear();
         }
 
         // ------------------------------------------------------------------ host: placing
@@ -84,8 +86,7 @@ namespace BlockPeak.Modes
             nextCheck = Time.time + 1f;
             // PEAK switches on each part of the mountain only as the scouts get near it; luggage there has no ground
             // under it until then, so keep looking for newly switched-on luggage.
-            if (!placed || seenLuggage.Count < Luggage.ALL_LUGGAGE.Count)
-                try { HostPlaceNew(freq); } catch (Exception e) { Health.Report("chests-place", e); }
+            try { HostPlaceNew(freq); } catch (Exception e) { Health.Report("chests-place", e); }
             placed = true;
             // Late joiners get every chest.
             if (PhotonNetwork.InRoom)
@@ -105,19 +106,28 @@ namespace BlockPeak.Modes
             foreach (var l in Luggage.ALL_LUGGAGE)
             {
                 if (l == null || !l.gameObject.activeInHierarchy) continue;
-                if (!seenLuggage.Add(l.GetInstanceID())) continue;
-                if (l is RespawnChest || UnityEngine.Random.value >= chance) continue;
+                int id = l.GetInstanceID();
+                if (seenLuggage.Contains(id)) continue;
+                if (l is RespawnChest || UnityEngine.Random.value >= chance) { seenLuggage.Add(id); continue; }
                 Vector3 lp = l.transform.position;
-                if (SpawnPoint.allSpawnPoints != null && SpawnPoint.allSpawnPoints.Any(s => s != null && Vector3.Distance(s.transform.position, lp) < startRadius)) continue;
+                if (SpawnPoint.allSpawnPoints != null && SpawnPoint.allSpawnPoints.Any(s => s != null && Vector3.Distance(s.transform.position, lp) < startRadius)) { seenLuggage.Add(id); continue; }
                 var kind = RollKind();
-                if (!FindSpot(lp, kind, out var at, out var yaw)) continue;
-                var r = new Record { Id = nextId++, Pos = at, Yaw = yaw, Kind = kind };
+                if (!FindSpot(l, kind, out var at, out var rot))
+                {
+                    // The ground may not be there yet; try again a few times, then give up on this one.
+                    tries.TryGetValue(id, out int n);
+                    tries[id] = ++n;
+                    if (n >= 5) seenLuggage.Add(id);
+                    continue;
+                }
+                seenLuggage.Add(id);
+                var r = new Record { Id = nextId++, Pos = at, Rot = rot, Kind = kind };
                 made.Add(r);
             }
             if (made.Count == 0) return;
             foreach (var r in made) Add(r);
             if (PhotonNetwork.InRoom) Send(made, -1);
-            Health.Verbose($"Placed {made.Count} more Minecraft chests ({freq}); {byId.Count} in total.");
+            Plugin.Log.LogInfo($"Placed {made.Count} more Minecraft chests ({freq}); {byId.Count} in total, {seenLuggage.Count} luggage checked.");
         }
 
         private static ChestKind RollKind()
@@ -128,22 +138,40 @@ namespace BlockPeak.Modes
             return r < s ? ChestKind.Single : r < s + d ? ChestKind.Double : ChestKind.Copper;
         }
 
-        /// <summary>Flat ground 1.5-4 m from the luggage with room for the chest.</summary>
-        private static bool FindSpot(Vector3 near, ChestKind kind, out Vector3 at, out float yaw)
+        /// <summary>
+        /// Ground 1-4 m from the luggage that isn't too steep, with nothing solid where the chest's body would be.
+        /// The chest is tilted to the ground (up to 25 degrees) so it sits on slopes. If no spot is found, it goes
+        /// right next to the luggage anyway (PEAK's luggage always sits somewhere reachable).
+        /// </summary>
+        private static bool FindSpot(Luggage l, ChestKind kind, out Vector3 at, out Quaternion rot)
         {
             float S = BlockWorld.Size;
-            at = Vector3.zero; yaw = 0f;
-            for (int i = 0; i < 10; i++)
+            Vector3 near = l.transform.position;
+            at = Vector3.zero; rot = Quaternion.identity;
+            for (int i = 0; i < 16; i++)
             {
-                Vector2 off = UnityEngine.Random.insideUnitCircle.normalized * UnityEngine.Random.Range(1.5f, 4f);
-                Vector3 from = near + new Vector3(off.x, 3f, off.y);
-                if (!Physics.Raycast(from, Vector3.down, out var hit, 9f, Game.TerrainMask, QueryTriggerInteraction.Ignore)) continue;
-                if (hit.normal.y < 0.8f) continue;
-                yaw = Mathf.Atan2(near.x - hit.point.x, near.z - hit.point.z) * Mathf.Rad2Deg + UnityEngine.Random.Range(-30f, 30f);
-                Vector3 half = new Vector3(kind == ChestKind.Double ? S : S * 0.5f, S * 0.45f, S * 0.5f);
-                Vector3 center = hit.point + Vector3.up * (S * 0.5f + 0.05f);
-                if (Physics.CheckBox(center, half * 0.9f, Quaternion.Euler(0, yaw, 0), Game.TerrainMask, QueryTriggerInteraction.Ignore)) continue;
-                at = hit.point;
+                Vector2 off = UnityEngine.Random.insideUnitCircle.normalized * UnityEngine.Random.Range(1f, 4f);
+                Vector3 from = near + new Vector3(off.x, 4f, off.y);
+                if (!Physics.Raycast(from, Vector3.down, out var hit, 12f, Game.TerrainMask, QueryTriggerInteraction.Ignore)) continue;
+                if (hit.normal.y < 0.6f || Mathf.Abs(hit.point.y - near.y) > 3f) continue;
+                if (hit.collider != null && hit.collider.GetComponentInParent<Luggage>() != null) continue;
+                float yaw = Mathf.Atan2(near.x - hit.point.x, near.z - hit.point.z) * Mathf.Rad2Deg + UnityEngine.Random.Range(-30f, 30f);
+                Vector3 up = Vector3.Slerp(Vector3.up, hit.normal, 0.6f);
+                if (Vector3.Angle(Vector3.up, up) > 25f) up = Vector3.RotateTowards(Vector3.up, up, 25f * Mathf.Deg2Rad, 0f);
+                var r = Quaternion.FromToRotation(Vector3.up, up) * Quaternion.Euler(0f, yaw, 0f);
+                Vector3 half = new Vector3(kind == ChestKind.Double ? S * 0.9f : S * 0.42f, S * 0.3f, S * 0.42f);
+                Vector3 center = hit.point + up * (S * 0.55f);
+                if (Physics.CheckBox(center, half, r, Game.TerrainMask, QueryTriggerInteraction.Ignore)) continue;
+                at = hit.point - up * 0.03f;
+                rot = r;
+                return true;
+            }
+            // Fallback: beside the luggage on whatever is under it.
+            Vector3 side = near + l.transform.right * 1.2f + Vector3.up * 2f;
+            if (Physics.Raycast(side, Vector3.down, out var h2, 6f, Game.TerrainMask, QueryTriggerInteraction.Ignore))
+            {
+                at = h2.point;
+                rot = Quaternion.Euler(0f, l.transform.eulerAngles.y, 0f);
                 return true;
             }
             return false;
@@ -154,7 +182,7 @@ namespace BlockPeak.Modes
             var args = new object[]
             {
                 list.Select(r => r.Id).ToArray(),
-                list.SelectMany(r => new[] { r.Pos.x, r.Pos.y, r.Pos.z, r.Yaw }).ToArray(),
+                list.SelectMany(r => new[] { r.Pos.x, r.Pos.y, r.Pos.z, r.Rot.x, r.Rot.y, r.Rot.z, r.Rot.w }).ToArray(),
                 list.Select(r => (byte)r.Kind).ToArray(),
                 list.Select(r => r.Opened).ToArray(),
             };
@@ -249,7 +277,7 @@ namespace BlockPeak.Modes
             var go = new GameObject("mc_chest_" + r.Id);
             go.transform.SetParent(parent, false);
             go.transform.position = r.Pos;
-            go.transform.rotation = Quaternion.Euler(0, r.Yaw, 0);
+            go.transform.rotation = r.Rot;
             go.layer = Game.MapLayer;
             var v = go.AddComponent<ChestView>();
             v.Rec = r;
@@ -281,14 +309,14 @@ namespace BlockPeak.Modes
             var mat = Mat.For(tex);
             float w = x1 - x0;
             // base
-            var mb = new MeshBuilder();
+            var mb = new MeshBuilder { Cut = tex };
             ChestBox(mb, new Vector3(x0 + shiftX, 0, 1 - 8), new Vector3(x1 + shiftX, 10, 15 - 8), 0, 19, w, 10, 14);
             Piece(model, "base", Vector3.zero, mb, mat);
             // lid (+ latch), hinged at the back top edge
             var lid = new GameObject("lid").transform;
             lid.SetParent(model, false);
             lid.localPosition = new Vector3(0, 9f / 16f, -7f / 16f);
-            var lb = new MeshBuilder();
+            var lb = new MeshBuilder { Cut = tex };
             ChestBox(lb, new Vector3(x0 + shiftX, 0, 0), new Vector3(x1 + shiftX, 5, 14), 0, 0, w, 5, 14);
             ChestBox(lb, new Vector3(lx0 + shiftX, -3, 14), new Vector3(lx1 + shiftX, 1, 15), 0, 0, lx1 - lx0, 4, 1);
             Piece(lid, "lid", Vector3.zero, lb, mat);

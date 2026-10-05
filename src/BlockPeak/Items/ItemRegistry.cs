@@ -299,7 +299,7 @@ namespace BlockPeak.Items
         {
             if (Icons.TryGetValue(def.Key, out var t) && t != null && texturesWereReal == McAssets.HasRealTextures) return t;
             if (def.Kind == McKind.Block || def.Kind == McKind.Tnt)
-                t = Meshes.BlockIcon(McAssets.Tex(def.Side), McAssets.Tex(def.Top ?? def.Side));
+                t = Meshes.BlockIcon(def.SideTex, def.TopTex);
             else if (def.Kind == McKind.Potion)
                 t = Potion(McAssets.Tex("item/potion.png"), McAssets.Tex("item/potion_overlay.png"), def.Tint);
             else
@@ -384,9 +384,8 @@ namespace BlockPeak.Items
                 case McKind.Block:
                 case McKind.Tnt:
                 {
-                    var atlas = Meshes.BlockAtlas(McAssets.Tex(def.Side), McAssets.Tex(def.Top ?? def.Side), McAssets.Tex(def.Bottom ?? def.Top ?? def.Side));
-                    mf.sharedMesh = Meshes.Cube(1f, "mc_cube");
-                    mr.sharedMaterial = Mat.For(atlas);
+                    mf.sharedMesh = def.BlockMesh;
+                    mr.sharedMaterial = Mat.For(def.BlockAtlas);
                     scale = 0.3f;
                     offset = new Vector3(0, -0.15f, 0);
                     break;
@@ -447,6 +446,7 @@ namespace BlockPeak.Items
         private static void RefreshVisuals()
         {
             Icons.Clear();
+            foreach (var d in ItemDefs.All) d.ResetLooks();
             foreach (var kv in Templates)
             {
                 var def = ItemDefs.ById(kv.Key);

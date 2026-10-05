@@ -18,7 +18,7 @@ namespace BlockPeak
     {
         public const string Guid = "com.blockpeak.mod";
         public const string Name = "BlockPeak";
-        public const string Version = "0.3.0";
+        public const string Version = "0.4.0";
 
         public static Plugin Instance { get; private set; }
         public static ManualLogSource Log { get; private set; }

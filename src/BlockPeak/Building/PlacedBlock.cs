@@ -43,14 +43,26 @@ namespace BlockPeak.Building
                 case McKind.Tnt:
                 {
                     var atlas = Atlas(def);
-                    pb.MainTexture = McAssets.Tex(def.Side);
-                    mf.sharedMesh = Meshes.Cube(1f, "mc_cube");
-                    pb.mr.sharedMaterial = MatFor(def.Key, atlas);
+                    pb.MainTexture = def.SideTex;
+                    mf.sharedMesh = def.BlockMesh;
+                    pb.mr.sharedMaterial = def.Light > 0f ? Mat.Glowing(atlas, def.LightColor * 0.9f) : MatFor(def.Key, atlas);
                     go.transform.position = BlockWorld.CellBottom(r.Cell);
                     go.transform.localScale = Vector3.one * S;
                     var box = go.AddComponent<BoxCollider>();
                     box.center = new Vector3(0, 0.5f, 0);
                     box.size = Vector3.one;
+                    if (def.Light > 0f)
+                    {
+                        var lg = new GameObject("light");
+                        lg.transform.SetParent(go.transform, false);
+                        lg.transform.localPosition = new Vector3(0, 0.5f, 0);
+                        var l = lg.AddComponent<Light>();
+                        l.type = LightType.Point;
+                        l.color = def.LightColor;
+                        l.range = def.Light * S;
+                        l.intensity = 2f;
+                        l.shadows = LightShadows.None;
+                    }
                     break;
                 }
                 case McKind.Torch:
@@ -109,10 +121,7 @@ namespace BlockPeak.Building
 
         private static Texture2D Atlas(McItemDef def)
         {
-            if (atlases.TryGetValue(def.Key, out var a) && a != null) return a;
-            a = Meshes.BlockAtlas(McAssets.Tex(def.Side), McAssets.Tex(def.Top ?? def.Side), McAssets.Tex(def.Bottom ?? def.Top ?? def.Side));
-            atlases[def.Key] = a;
-            return a;
+            return def.BlockAtlas; // cached on the definition (reset when real textures arrive)
         }
 
         private static Material MatFor(string key, Texture2D atlas)

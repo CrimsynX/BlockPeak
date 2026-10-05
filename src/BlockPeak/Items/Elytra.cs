@@ -257,7 +257,7 @@ namespace BlockPeak.Items
             var mesh = new GameObject("mesh");
             mesh.transform.SetParent(pivot, false);
             mesh.transform.localScale = Vector3.one * (s * 16f);
-            var mb = new MeshBuilder();
+            var mb = new MeshBuilder { Cut = mat.mainTexture as Texture2D };
             // Unity x is Minecraft -x: the left wing's box (0..10) reaches out to the left, the right one to the right.
             if (!mirror) mb.McBox(0, 0, 0, 10, 20, 2, 22, 0, 64, 32);
             else mb.McBox(-10, 0, 0, 10, 20, 2, 22, 0, 64, 32, true);

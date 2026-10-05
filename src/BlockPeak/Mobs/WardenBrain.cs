@@ -31,7 +31,7 @@ namespace BlockPeak.Mobs
         private Character angryAt;
         private bool speedsAreAngry;
         private float attackAnimUntil = -1f;
-        private bool attackFlagSeen;
+        private bool attackFlagSeen, wasAngryLook;
         private float heartbeatAt;
 
         private static JToken W => Balance.Section("mobs")["warden"] ?? new JObject();
@@ -41,10 +41,13 @@ namespace BlockPeak.Mobs
         private static float FlatDist(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
 
         /// <summary>Host: something made a vibration (explosion, block placed or broken, horn...).</summary>
+        private static bool Chase => Modes.GameModes.Active == Modes.ModeKind.WardenChase;
+        private static float HearRange => Chase ? Balance.F(W, "chaseHearRange", 24f) : Balance.F(W, "hearRange", 16f);
+
         public void HostHear(Vector3 at, float strength, Character source)
         {
             if (Type != "warden" || Dying) return;
-            float range = Balance.F(W, "hearRange", 16f) * Mathf.Max(1f, strength * 0.75f);
+            float range = HearRange * Mathf.Max(1f, strength * 0.75f);
             if (Vector3.Distance(at, Position) > range) return;
             investigate = at;
             investigateUntil = Time.time + 12f;
@@ -78,7 +81,7 @@ namespace BlockPeak.Mobs
             if (senseTick <= 0f)
             {
                 senseTick = 0.25f;
-                float hear = Balance.F(W, "hearRange", 16f);
+                float hear = HearRange;
                 foreach (var p in BodyMobs.Players)
                 {
                     int a = ActorOf(p);
@@ -117,7 +120,7 @@ namespace BlockPeak.Mobs
             // Anger fades slowly, and only for scouts still around.
             foreach (var k in anger.Keys.ToList())
             {
-                float v = anger[k] - Balance.F(W, "angerDecayPerSecond", 1f) * dt;
+                float v = anger[k] - Balance.F(W, "angerDecayPerSecond", 1f) * (Chase ? 0.5f : 1f) * dt;
                 if (v <= 0f || !BodyMobs.Players.Any(p => ActorOf(p) == k)) anger.Remove(k); else anger[k] = v;
             }
 
@@ -170,7 +173,7 @@ namespace BlockPeak.Mobs
                 {
                     sonicCd = 5f;
                     Channel.All(Op.Sound, true, "mob/warden/sonic_boom", Position, 1f);
-                    Fx.Burst(Vector3.Lerp(Position, target.Center, 0.5f), new[] { new Color(0.2f, 0.9f, 0.9f), new Color(0.1f, 0.5f, 0.6f) }, 20, 2f, 0.6f, false);
+                    Channel.All(Op.SonicBoom, true, C.Head, target.Center);
                     McMobs.HostHurtPlayer(target, "warden_sonic", true, Position);
                 }
             }
@@ -241,6 +244,8 @@ namespace BlockPeak.Mobs
         {
             bool angry = (Flags & FlagAngry) != 0, agitated = (Flags & FlagAgitated) != 0;
             bool attacking = (Flags & FlagAttack) != 0;
+            if (angry && !wasAngryLook) WardenFx.Roar(Position);
+            wasAngryLook = angry;
             if (attacking && !attackFlagSeen) attackAnimUntil = Time.time + 0.5f;
             attackFlagSeen = attacking;
 
